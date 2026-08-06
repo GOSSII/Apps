@@ -1,9 +1,11 @@
 import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState
 } from 'react';
-import type { ActiveTimer, AppState, Exam, Session, Subject } from './types';
+import type { ActiveTimer, AppState, Exam, Reminder, Session, Subject } from './types';
+import { translate, type Key, type Lang, type Params } from './i18n';
 import { emptyState, loadState, saveState } from './lib/storage';
 import { dayKey } from './lib/dates';
+import { humanDuration } from './lib/format';
 import { subjectPalette } from './theme';
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -27,9 +29,12 @@ type Actions = {
   stopTimer(): number;
   discardTimer(): void;
   logManual(subjectId: string, minutes: number): void;
+  editSession(id: string, minutes: number): void;
   deleteSession(id: string): void;
   setDailyTarget(minutes: number): void;
   setExam(exam: Exam | null): void;
+  setLang(lang: Lang): void;
+  setReminder(reminder: Reminder): void;
   resetAll(): void;
 };
 
@@ -161,6 +166,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const editSession = useCallback((id: string, minutes: number) => {
+    if (!(minutes > 0)) return;
+    setState(s => ({
+      ...s,
+      sessions: s.sessions.map(x =>
+        x.id === id ? { ...x, seconds: Math.round(minutes * 60) } : x
+      )
+    }));
+  }, []);
+
   const deleteSession = useCallback((id: string) => {
     setState(s => ({ ...s, sessions: s.sessions.filter(x => x.id !== id) }));
   }, []);
@@ -173,16 +188,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(s => ({ ...s, exam }));
   }, []);
 
+  const setLang = useCallback((lang: Lang) => {
+    setState(s => ({ ...s, lang }));
+  }, []);
+
+  const setReminder = useCallback((reminder: Reminder) => {
+    setState(s => ({ ...s, reminder }));
+  }, []);
+
   const resetAll = useCallback(() => setState(emptyState()), []);
 
   const value = useMemo<Ctx>(() => ({
     state, ready,
     addSubject, renameSubject, deleteSubject,
     startTimer, pauseTimer, resumeTimer, stopTimer, discardTimer,
-    logManual, deleteSession, setDailyTarget, setExam, resetAll
+    logManual, editSession, deleteSession, setDailyTarget, setExam,
+    setLang, setReminder, resetAll
   }), [state, ready, addSubject, renameSubject, deleteSubject, startTimer,
-       pauseTimer, resumeTimer, stopTimer, discardTimer, logManual,
-       deleteSession, setDailyTarget, setExam, resetAll]);
+       pauseTimer, resumeTimer, stopTimer, discardTimer, logManual, editSession,
+       deleteSession, setDailyTarget, setExam, setLang, setReminder, resetAll]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
@@ -191,6 +215,21 @@ export function useApp(): Ctx {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error('useApp must be used inside <AppProvider>');
   return ctx;
+}
+
+/** Translator bound to the language currently in state. */
+export function useT(): (key: Key, params?: Params) => string {
+  const { state } = useApp();
+  return useCallback(
+    (key: Key, params?: Params) => translate(state.lang, key, params),
+    [state.lang]
+  );
+}
+
+/** Duration formatter bound to the current language. */
+export function useDuration(): (seconds: number) => string {
+  const { state } = useApp();
+  return useCallback((seconds: number) => humanDuration(seconds, state.lang), [state.lang]);
 }
 
 /** Re-renders once a second, but only while a timer is actually running. */

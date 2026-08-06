@@ -9,7 +9,9 @@ export const emptyState = (): AppState => ({
   sessions: [],
   dailyTargetMinutes: 240,
   exam: null,
-  active: null
+  active: null,
+  lang: 'en',
+  reminder: { enabled: false, hour: 21, minute: 0 }
 });
 
 export async function loadState(): Promise<AppState> {
@@ -17,11 +19,15 @@ export async function loadState(): Promise<AppState> {
     const raw = await AsyncStorage.getItem(KEY);
     if (!raw) return emptyState();
     const parsed = JSON.parse(raw) as Partial<AppState>;
+    const base = emptyState();
     return {
-      ...emptyState(),
+      ...base,
       ...parsed,
       subjects: parsed.subjects ?? [],
-      sessions: parsed.sessions ?? []
+      sessions: parsed.sessions ?? [],
+      /* Older saves predate these fields — merge rather than replace, so an
+         upgrade never lands the user on `undefined`. */
+      reminder: { ...base.reminder, ...(parsed.reminder ?? {}) }
     };
   } catch (err) {
     console.warn('Could not read saved data, starting fresh', err);

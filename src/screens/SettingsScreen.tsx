@@ -1,30 +1,37 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Button, Card, SectionTitle } from '../components/ui';
+import { Button, Card, Chip, SectionTitle } from '../components/ui';
 import { Confirm } from '../components/Modals';
 import { colors, radius, space } from '../theme';
-import { useApp } from '../store';
-import { humanDuration } from '../lib/format';
+import { useApp, useT, useDuration } from '../store';
+import { LANGUAGES, type Lang } from '../i18n';
 import { daysUntil, parseDateInput, prettyDate } from '../lib/dates';
+import {
+  cancelDailyReminder, formatTime, parseTimeInput, scheduleDailyReminder
+} from '../lib/notifications';
 
 export default function SettingsScreen() {
-  const { state, setDailyTarget, setExam, resetAll } = useApp();
-  const { dailyTargetMinutes, exam } = state;
+  const { state, setDailyTarget, setExam, setLang, setReminder, resetAll } = useApp();
+  const t = useT();
+  const dur = useDuration();
+  const { dailyTargetMinutes, exam, lang, reminder } = state;
 
   const [examName, setExamName] = useState(exam?.name ?? '');
   const [examDate, setExamDate] = useState(exam ? prettyDate(exam.date) : '');
   const [dateError, setDateError] = useState<string | null>(null);
+  const [timeText, setTimeText] = useState(formatTime(reminder.hour, reminder.minute));
+  const [reminderError, setReminderError] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
 
   const saveExam = () => {
     const name = examName.trim();
     if (!name) {
-      setDateError('Give the exam a name');
+      setDateError(t('examNeedsName'));
       return;
     }
     const parsed = parseDateInput(examDate);
     if (!parsed) {
-      setDateError('Use a date like 24/05/2027');
+      setDateError(t('examBadDate'));
       return;
     }
     setDateError(null);
@@ -38,70 +45,153 @@ export default function SettingsScreen() {
     setDateError(null);
   };
 
+  const turnReminderOn = async () => {
+    const time = parseTimeInput(timeText);
+    if (!time) {
+      setReminderError(t('reminderBadTime'));
+      return;
+    }
+    setReminderError(null);
+    const result = await scheduleDailyReminder(
+      time.hour,
+      time.minute,
+      t('reminderTitle'),
+      t('reminderBody', { target: dur(dailyTargetMinutes * 60) })
+    );
+    if (result === 'ok') {
+      setReminder({ enabled: true, hour: time.hour, minute: time.minute });
+      return;
+    }
+    /* The preference is still worth keeping — it applies on a real install
+       even when this preview cannot schedule anything. */
+    setReminder({ enabled: false, hour: time.hour, minute: time.minute });
+    setReminderError(result === 'denied' ? t('reminderDenied') : t('reminderUnsupported'));
+  };
+
+  const turnReminderOff = async () => {
+    await cancelDailyReminder();
+    setReminder({ ...reminder, enabled: false });
+    setReminderError(null);
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.h1}>Settings</Text>
+      <Text style={styles.h1}>{t('tabSettings')}</Text>
 
-      <SectionTitle>Daily target</SectionTitle>
+      <SectionTitle>{t('language')}</SectionTitle>
       <Card>
-        <Text style={styles.target}>{humanDuration(dailyTargetMinutes * 60)}</Text>
-        <Text style={styles.hint}>
-          A day counts towards your streak once you cross this.
-        </Text>
+        <View style={styles.chipWrap}>
+          {LANGUAGES.map(option => (
+            <Chip
+              key={option.key}
+              label={option.label}
+              selected={lang === option.key}
+              onPress={() => setLang(option.key as Lang)}
+              testID={`lang-${option.key}`}
+            />
+          ))}
+        </View>
+      </Card>
+
+      <SectionTitle>{t('dailyTarget')}</SectionTitle>
+      <Card>
+        <Text style={styles.target}>{dur(dailyTargetMinutes * 60)}</Text>
+        <Text style={styles.hint}>{t('dailyTargetHint')}</Text>
         <View style={styles.row}>
           <Button
-            label="− 30m"
+            label={t('minus30')}
             variant="ghost"
             onPress={() => setDailyTarget(dailyTargetMinutes - 30)}
             style={styles.flex}
           />
           <Button
-            label="+ 30m"
+            label={t('plus30')}
             variant="ghost"
             onPress={() => setDailyTarget(dailyTargetMinutes + 30)}
             style={styles.flex}
+            testID="target-plus"
           />
         </View>
       </Card>
 
-      <SectionTitle>Exam countdown</SectionTitle>
+      <SectionTitle>{t('reminder')}</SectionTitle>
+      <Card>
+        <Text style={[styles.current, !reminder.enabled && styles.currentOff]}>
+          {reminder.enabled
+            ? t('reminderOn', { time: formatTime(reminder.hour, reminder.minute) })
+            : t('reminderOff')}
+        </Text>
+        <Text style={styles.hint}>{t('reminderHint')}</Text>
+        <TextInput
+          value={timeText}
+          onChangeText={setTimeText}
+          placeholder={t('reminderTimePlaceholder')}
+          placeholderTextColor={colors.muted}
+          keyboardType="numbers-and-punctuation"
+          style={[styles.input, { marginTop: space.md }]}
+          testID="reminder-time"
+        />
+        {!!reminderError && <Text style={styles.error}>{reminderError}</Text>}
+        <View style={styles.row}>
+          {reminder.enabled ? (
+            <Button
+              label={t('turnOff')}
+              variant="ghost"
+              onPress={turnReminderOff}
+              style={styles.flex}
+            />
+          ) : (
+            <Button
+              label={t('turnOn')}
+              onPress={turnReminderOn}
+              style={styles.flex}
+              testID="reminder-on"
+            />
+          )}
+        </View>
+      </Card>
+
+      <SectionTitle>{t('examCountdown')}</SectionTitle>
       <Card>
         {!!exam && (
           <Text style={styles.current}>
-            {exam.name} · {prettyDate(exam.date)} · {daysUntil(exam.date)} days left
+            {t('examCurrent', {
+              name: exam.name,
+              date: prettyDate(exam.date),
+              n: daysUntil(exam.date)
+            })}
           </Text>
         )}
         <TextInput
           value={examName}
           onChangeText={setExamName}
-          placeholder="Exam name (e.g. NEET 2027)"
+          placeholder={t('examNamePlaceholder')}
           placeholderTextColor={colors.muted}
           style={styles.input}
+          testID="exam-name"
         />
         <TextInput
           value={examDate}
           onChangeText={setExamDate}
-          placeholder="Date — 24/05/2027"
+          placeholder={t('examDatePlaceholder')}
           placeholderTextColor={colors.muted}
           style={styles.input}
+          testID="exam-date"
         />
         {!!dateError && <Text style={styles.error}>{dateError}</Text>}
         <View style={styles.row}>
           {!!exam && (
-            <Button label="Remove" variant="ghost" onPress={clearExam} style={styles.flex} />
+            <Button label={t('remove')} variant="ghost" onPress={clearExam} style={styles.flex} />
           )}
-          <Button label="Save" onPress={saveExam} style={styles.flex} />
+          <Button label={t('save')} onPress={saveExam} style={styles.flex} testID="exam-save" />
         </View>
       </Card>
 
-      <SectionTitle>Data</SectionTitle>
+      <SectionTitle>{t('data')}</SectionTitle>
       <Card>
-        <Text style={styles.hint}>
-          Everything is stored on this phone only. No account, no upload, works
-          fully offline.
-        </Text>
+        <Text style={styles.hint}>{t('privacy')}</Text>
         <Button
-          label="Erase all data"
+          label={t('eraseAll')}
           variant="danger"
           onPress={() => setConfirmReset(true)}
           style={{ marginTop: space.md }}
@@ -112,12 +202,13 @@ export default function SettingsScreen() {
 
       <Confirm
         visible={confirmReset}
-        title="Erase everything?"
-        message="Subjects, sittings and streaks will all be deleted. This cannot be undone."
-        confirmLabel="Erase"
+        title={t('eraseTitle')}
+        message={t('eraseMsg')}
+        confirmLabel={t('erase')}
         destructive
         onCancel={() => setConfirmReset(false)}
         onConfirm={() => {
+          void cancelDailyReminder();
           resetAll();
           setExamName('');
           setExamDate('');
@@ -133,9 +224,11 @@ const styles = StyleSheet.create({
   h1: { color: colors.text, fontSize: 28, fontWeight: '800', marginBottom: space.md },
   target: { color: colors.text, fontSize: 32, fontWeight: '800' },
   hint: { color: colors.muted, fontSize: 13, marginTop: space.xs, lineHeight: 19 },
-  current: { color: colors.warn, fontWeight: '700', marginBottom: space.md },
+  current: { color: colors.warn, fontWeight: '700', marginBottom: space.xs },
+  currentOff: { color: colors.muted },
   row: { flexDirection: 'row', gap: space.md, marginTop: space.md },
   flex: { flex: 1 },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: -space.sm },
   input: {
     backgroundColor: colors.bg,
     borderWidth: 1,

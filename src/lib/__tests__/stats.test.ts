@@ -141,6 +141,12 @@ describe('formatting', () => {
     expect(humanDuration(-10)).toBe('0m');
   });
 
+  it('uses Hindi units when the app is in Hindi', () => {
+    expect(humanDuration(5400, 'hi')).toBe('1घं 30मि');
+    expect(humanDuration(3600, 'hi')).toBe('1घं');
+    expect(humanDuration(600, 'hi')).toBe('10मि');
+  });
+
   it('renders the running clock zero-padded', () => {
     expect(clockDuration(0)).toBe('00:00:00');
     expect(clockDuration(5)).toBe('00:00:05');

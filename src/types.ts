@@ -1,3 +1,5 @@
+import type { Lang } from './i18n';
+
 export type Subject = {
   id: string;
   name: string;
@@ -31,6 +33,13 @@ export type Exam = {
   date: string;
 };
 
+/** A single repeating local notification, in the phone's own timezone. */
+export type Reminder = {
+  enabled: boolean;
+  hour: number;
+  minute: number;
+};
+
 export type AppState = {
   v: 1;
   subjects: Subject[];
@@ -38,4 +47,6 @@ export type AppState = {
   dailyTargetMinutes: number;
   exam: Exam | null;
   active: ActiveTimer | null;
+  lang: Lang;
+  reminder: Reminder;
 };
