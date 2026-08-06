@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Udhar Khata">
-  <rect width="512" height="512" rx="112" fill="#0f7b6c"/>
-  <rect x="96" y="104" width="320" height="304" rx="28" fill="#ffffff"/>
-  <rect x="96" y="104" width="44" height="304" rx="22" fill="#0b5d52"/>
-  <g fill="#0f7b6c" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="176" text-anchor="middle">
-    <text x="288" y="316">₹</text>
-  </g>
-  <rect x="188" y="352" width="180" height="16" rx="8" fill="#d7e5e2"/>
-</svg>

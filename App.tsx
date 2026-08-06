@@ -1,0 +1,114 @@
+import React, { useState } from 'react';
+import {
+  ActivityIndicator, Platform, Pressable, StyleSheet, Text, View
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { AppProvider, useApp } from './src/store';
+import TodayScreen from './src/screens/TodayScreen';
+import StatsScreen from './src/screens/StatsScreen';
+import SubjectsScreen from './src/screens/SubjectsScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+import { colors, space } from './src/theme';
+
+type TabKey = 'today' | 'stats' | 'subjects' | 'settings';
+
+const TABS: { key: TabKey; label: string; icon: string }[] = [
+  { key: 'today', label: 'Today', icon: '⏱' },
+  { key: 'stats', label: 'Stats', icon: '📊' },
+  { key: 'subjects', label: 'Subjects', icon: '📚' },
+  { key: 'settings', label: 'Settings', icon: '⚙️' }
+];
+
+/* Four screens and no deep links — a tab bar over local state is the whole
+   navigation need here, and it keeps the bundle (and the install) small. */
+function Root() {
+  const { ready, state } = useApp();
+  const [tab, setTab] = useState<TabKey>('today');
+
+  if (!ready) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator color={colors.accent} />
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <View style={styles.screen}>
+        {tab === 'today' && <TodayScreen onManageSubjects={() => setTab('subjects')} />}
+        {tab === 'stats' && <StatsScreen />}
+        {tab === 'subjects' && <SubjectsScreen />}
+        {tab === 'settings' && <SettingsScreen />}
+      </View>
+
+      <View style={styles.tabBar}>
+        {TABS.map(({ key, label, icon }) => {
+          const selected = tab === key;
+          const showRunningDot = key === 'today' && !!state.active?.runningSince;
+          return (
+            <Pressable
+              key={key}
+              testID={`tab-${key}`}
+              onPress={() => setTab(key)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              style={styles.tab}
+            >
+              <View>
+                <Text style={[styles.tabIcon, selected && styles.tabIconOn]}>{icon}</Text>
+                {showRunningDot && <View style={styles.runningDot} />}
+              </View>
+              <Text style={[styles.tabLabel, selected && styles.tabLabelOn]}>{label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppProvider>
+        <StatusBar style="light" />
+        <Root />
+      </AppProvider>
+    </SafeAreaProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
+  screen: { flex: 1 },
+  loading: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    backgroundColor: colors.surface,
+    paddingTop: space.sm,
+    paddingBottom: Platform.OS === 'web' ? space.sm : space.xs
+  },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: space.xs },
+  tabIcon: { fontSize: 20, opacity: 0.55 },
+  tabIconOn: { opacity: 1 },
+  tabLabel: { color: colors.muted, fontSize: 11, marginTop: 2 },
+  tabLabelOn: { color: colors.text, fontWeight: '700' },
+  runningDot: {
+    position: 'absolute',
+    top: -1,
+    right: -6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.good
+  }
+});

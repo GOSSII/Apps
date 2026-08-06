@@ -1,96 +1,113 @@
-# उधार खाता / Udhar Khata
+# Padhai Streak
 
-A tiny offline credit ledger for Indian shopkeepers. The daily loop it serves:
-a customer takes goods on udhar, the shopkeeper taps **आपने दिए**, and later
-taps **आपने लिए** when the money comes back. One glance shows who owes what;
-one tap sends a WhatsApp reminder with the shop's UPI ID already in it.
+A study timer for Indian exam aspirants — JEE, NEET, UPSC, SSC, CAT. Start the
+clock for a subject, and the app answers the only question that matters at
+11pm: *did I hit today's target, and is my streak alive?*
 
-No build step, no framework, no server, no account. Open `index.html` and it
-works.
+Built with React Native + Expo. Runs on Android and iPhone from one codebase.
+No login, no server, no internet needed.
 
-## Why this idea
+| Today | Running | Stats | Subjects |
+| --- | --- | --- | --- |
+| ![Today](docs/screenshots/shot-today.png) | ![Running](docs/screenshots/shot-running.png) | ![Stats](docs/screenshots/shot-stats.png) | ![Subjects](docs/screenshots/shot-subjects.png) |
 
-Credit at the counter is a daily habit in millions of kirana shops, dairies,
-vegetable carts, and chai stalls — and most of it still lives in a paper
-notebook that gets lost, soaked, or argued over. The app has to survive the
-realities of that counter:
+## Why this one
 
-- **Offline first.** Shop basements and village lanes drop signal constantly.
-  A service worker caches the whole app, so it opens the same with 4G or none.
-- **Hindi first.** Devanagari is the default; English is one toggle away.
-- **Two buttons, not a form.** The entire daily interaction is *gave* / *got*.
-- **WhatsApp for collection.** Reminders go out on the app people already use,
-  rather than asking customers to install anything.
-- **Nothing leaves the phone.** No signup, no upload — money data stays local,
-  with JSON and CSV backup for when the phone is replaced.
+Aspirants already track study hours — in notebooks, in Excel, in Instagram
+stories. The tracking is the habit; the app just has to be faster than the
+notebook and honest about the numbers.
+
+- **Daily target, not vanity hours.** A day counts only when you cross your
+  own target, so the streak means something.
+- **The streak forgives today.** An unfinished today never breaks the streak —
+  the day is still in progress. Only a genuinely missed day does. Getting this
+  wrong would punish people at 9am for a day they haven't finished yet.
+- **Subject-wise, because prep is subject-wise.** Where the hours actually
+  went is the useful part, not the total.
+- **Exam countdown.** "JEE Mains in 100 days" sits on the home screen, because
+  that is the number aspirants already count in their head.
+- **Offline and private.** Everything is on the phone. No account, no upload.
 
 ## Features
 
-- Customer list with running balance, sorted by most recent activity
-- Totals at the top: **लेने हैं** (receivable) and **देने हैं** (payable)
-- Per-customer ledger with date, note, and per-entry delete
-- WhatsApp reminder with the pending amount, shop name, and UPI ID prefilled
-- One-tap call to the customer
-- Search by name or phone
-- Hindi / English toggle
-- Installable PWA, works fully offline
-- Backup: download/restore JSON, export CSV for Excel or a CA
+- One-tap timer per subject, with pause/resume and discard
+- Live clock that keeps counting while the app is closed or the phone is locked
+- Screen stays awake while a session runs
+- Manual entry for study you did away from the phone
+- Daily target with progress bar, and a streak counter
+- Last-7-days bar chart against your target line
+- Subject breakdown for this week or all time
+- Best streak, total hours, sittings count
+- Exam name + date countdown
+- Quick-add subject chips for common exam tracks
 
 ## Run it
 
 ```sh
-python3 -m http.server 8000
-# then open http://localhost:8000
+npm install
+npx expo start
 ```
 
-A service worker needs `http://` or `https://` — opening the file directly
-still works, just without offline caching. Deploy by copying the folder to any
-static host (GitHub Pages, Netlify, Cloudflare Pages).
+Scan the QR with **Expo Go** (Android/iOS) and it opens on your phone. Or press
+`w` for the browser, `a` for an Android emulator.
 
-On Android Chrome, use **Add to Home screen** to install it as an app.
+To produce an installable APK, use EAS Build (needs a free Expo account):
+
+```sh
+npx eas build -p android --profile preview
+```
 
 ## How it's built
 
-| File | Role |
-| --- | --- |
-| `index.html` | App shell — one page, three screens |
-| `css/styles.css` | Styling, dark mode, 48px touch targets |
-| `js/store.js` | Data layer over `localStorage` |
-| `js/i18n.js` | Hindi/English strings |
-| `js/app.js` | Screens, routing, forms, WhatsApp link |
-| `sw.js` | Cache-first service worker |
+```
+App.tsx                  tab shell (4 tabs, local state — no router needed)
+src/store.tsx            state, actions, persistence
+src/types.ts             Subject, Session, ActiveTimer, AppState
+src/theme.ts             colours and spacing
+src/lib/storage.ts       AsyncStorage load/save
+src/lib/dates.ts         local-day keys, date parsing
+src/lib/stats.ts         day totals, streaks, subject totals
+src/lib/format.ts        duration formatting
+src/components/          Card, Button, ProgressBar, Chip, Sheet, Confirm
+src/screens/             Today, Stats, Subjects, Settings
+```
 
-Two decisions worth knowing:
+Three decisions worth knowing:
 
-- **Money is stored in paise as integers.** Balances are sums of many small
-  add/subtract operations, and floats drift; `₹1250.50` is kept as `125050`.
-- **Balance sign carries meaning.** Positive = customer owes the shop (shown in
-  red), negative = the shop owes the customer (green). Everything else —
-  totals, list colours, reminder text — reads off that one number.
-
-Amounts render through `Intl.NumberFormat('en-IN')`, so grouping follows the
-Indian lakh/crore convention (`₹12,34,567`), not the Western one.
+- **The timer is timestamps, never a counter.** A running session stores
+  `runningSince` plus banked seconds, so time spent with the app swiped away —
+  or the phone face-down for two hours — is still counted. A `setInterval` only
+  drives the display, and only while the clock is visibly running.
+- **Days are local calendar days.** A session ending at 1am belongs to that
+  1am day. Someone studying past midnight has started a new day, and pretending
+  otherwise would make streaks lie.
+- **Confirmations are Modals, not `Alert.alert`.** `Alert` is unreliable on
+  web, and the app is previewed there during development.
 
 ## Testing
 
-Verified against headless Chromium (20 checks): customer creation, balance
-arithmetic, persistence across reload, search, language switch, WhatsApp deep
-link and `91` prefixing, HTML-injection escaping on customer names, CSV export,
-service worker registration, and reloading with the network switched off.
+```sh
+npm test          # 21 unit tests (jest-expo)
+npm run typecheck # tsc --noEmit
+```
 
-## Other ideas in the same spirit
+Unit tests cover the logic that is easy to get quietly wrong: streaks across
+missed days and in-progress days, best-streak detection across gaps, month and
+leap-day boundaries, rejection of impossible dates like 31 February, and the
+timer's pause/resume/app-closed arithmetic.
 
-If this one is not the right fit, the same "small, daily, offline, Hindi-first"
-shape applies to:
+The UI was additionally driven end-to-end in a browser (react-native-web +
+headless Chromium): adding subjects, running/pausing/saving a session, manual
+logging, the exam countdown, invalid-date handling, stats rendering, and
+persistence across a full reload.
 
-1. **दूध-पेपर हिसाब** — monthly milk and newspaper tally. Mark a daily tick,
-   get the month-end bill. Every household deals with this, nobody enjoys it.
-2. **PG / flatmate kharcha split** — shared expenses for the rent-sharing
-   population in metros, settled with UPI links.
-3. **दवा रिमाइंडर** — medicine reminders in Hindi for elderly parents, set up
-   by the adult child on their behalf.
-4. **Mandi bhav tracker** — log daily crop rates by mandi, spot the best day
-   to sell.
+## Not built yet
+
+- Notifications ("you're 40m short of today's target")
+- Weekly/monthly history beyond 7 days
+- Editing or deleting individual past sittings from the UI
+- Custom app icon — currently the Expo default
+- Hindi interface
 
 ## Licence
 
