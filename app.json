@@ -10,7 +10,8 @@
     "backgroundColor": "#0f1115",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.padhaistreak.app"
+      "bundleIdentifier": "com.padhaistreak.app",
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.padhaistreak.app",
@@ -20,16 +21,28 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#0f1115"
+        }
+      ],
+      [
         "expo-notifications",
         {
-          "color": "#7c5cff"
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#7353f5",
+          "defaultChannel": "daily-reminder"
         }
       ]
     ]
