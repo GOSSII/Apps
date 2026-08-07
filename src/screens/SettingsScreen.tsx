@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip, SectionTitle } from '../components/ui';
 import { Confirm } from '../components/Modals';
@@ -56,6 +56,20 @@ export default function SettingsScreen() {
     setExamDate('');
     setDateError(null);
   };
+
+  /* Notification copy is fixed at schedule time, so a reminder set in English
+     at a 4h target would keep saying that after the user switches to Hindi or
+     moves their target. Re-schedule whenever either changes. */
+  useEffect(() => {
+    if (!reminder.enabled) return;
+    void scheduleDailyReminder(
+      reminder.hour,
+      reminder.minute,
+      t('reminderTitle'),
+      t('reminderBody', { target: dur(dailyTargetMinutes * 60) })
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang, dailyTargetMinutes, reminder.enabled, reminder.hour, reminder.minute]);
 
   const turnReminderOn = async () => {
     const time = parseTimeInput(timeText);

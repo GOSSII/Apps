@@ -28,8 +28,7 @@ export function Ring({
   const clamped = Math.max(0, Math.min(1, progress || 0));
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
-  /* A hairline of arc at 0 looks like a rendering bug, so empty stays empty. */
-  const dash = clamped <= 0 ? 0 : circumference * clamped;
+  const dash = circumference * clamped;
 
   return (
     <View style={{ width: size, height: size }}>
@@ -48,18 +47,23 @@ export function Ring({
           strokeWidth={stroke}
           fill="none"
         />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="url(#ringFill)"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circumference}`}
-          fill="none"
-          /* Start at twelve o'clock instead of three. */
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
+        {/* Omitted rather than drawn at length zero: a round line cap turns a
+            zero-length arc into a dot at twelve o'clock, which reads as a bug
+            on a day nothing has been studied yet. */}
+        {clamped > 0 && (
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="url(#ringFill)"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${dash} ${circumference}`}
+            fill="none"
+            /* Start at twelve o'clock instead of three. */
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+        )}
       </Svg>
       <View style={[styles.center, { width: size, height: size }]} pointerEvents="box-none">
         {children}
