@@ -4,9 +4,9 @@ import { Card, Chip, Dot, Empty, ProgressBar, SectionTitle } from '../components
 import { Button } from '../components/ui';
 import { Confirm, Sheet } from '../components/Modals';
 import { colors, radius, space } from '../theme';
-import { useApp, useT, useDuration } from '../store';
+import { useApp, useT, useDuration, useToday } from '../store';
 import { hours } from '../lib/format';
-import { dateInputValue, dayKey, parseDateInput, prettyDate, weekdayLetter } from '../lib/dates';
+import { dateInputValue, parseDateInput, prettyDate, weekdayLetter } from '../lib/dates';
 import { bestStreak, dayTotals, recentDays, totalsBySubject } from '../lib/stats';
 import { addDays } from '../lib/dates';
 
@@ -20,6 +20,7 @@ export default function StatsScreen() {
   const { sessions, subjects, dailyTargetMinutes } = state;
   const targetSeconds = dailyTargetMinutes * 60;
 
+  const today = useToday();
   const [range, setRange] = useState<7 | 30>(7);
   const [scope, setScope] = useState<'week' | 'all'>('week');
   const [showAll, setShowAll] = useState(false);
@@ -30,8 +31,8 @@ export default function StatsScreen() {
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const totals = useMemo(() => dayTotals(sessions), [sessions]);
-  const week = useMemo(() => recentDays(7), []);
-  const days = useMemo(() => recentDays(range), [range]);
+  const week = useMemo(() => recentDays(7), [today]);
+  const days = useMemo(() => recentDays(range), [range, today]);
 
   const weekSeconds = week.reduce((sum, d) => sum + (totals[d] || 0), 0);
   const allSeconds = sessions.reduce((sum, s) => sum + s.seconds, 0);
@@ -63,7 +64,7 @@ export default function StatsScreen() {
     const weeks: string[][] = [];
     for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
     return weeks;
-  }, []);
+  }, [today]);
 
   const timedRounds = sessions.filter(s => s.planned);
   const totalDistractions = sessions.reduce((sum, s) => sum + (s.distractions || 0), 0);
@@ -105,7 +106,7 @@ export default function StatsScreen() {
           {days.map((day, i) => {
             const secs = totals[day] || 0;
             const hit = secs >= targetSeconds;
-            const isToday = day === dayKey();
+            const isToday = day === today;
             /* At 30 bars there is no room for a label under each one. */
             const label = range === 7
               ? weekdayLetter(day)
@@ -217,7 +218,7 @@ export default function StatsScreen() {
                     style={[
                       styles.calCell,
                       { backgroundColor: heatColour(share) },
-                      day === dayKey() && styles.calToday
+                      day === today && styles.calToday
                     ]}
                   />
                 );
@@ -292,7 +293,7 @@ export default function StatsScreen() {
               if (!day) { setEditError(t('examBadDate')); return; }
               /* A sitting in the future would sit at the far end of every
                  chart and quietly inflate a streak that has not happened. */
-              if (day > dayKey()) { setEditError(t('dateInFuture')); return; }
+              if (day > today) { setEditError(t('dateInFuture')); return; }
               editSession(editing.id, {
                 minutes: Number(editing.minutes.replace(/[^\d.]/g, '')),
                 day,

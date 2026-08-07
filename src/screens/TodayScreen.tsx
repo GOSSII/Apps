@@ -4,8 +4,8 @@ import { Ring } from '../components/Ring';
 import { Button, Card, Chip, Dot, Empty, SectionTitle } from '../components/ui';
 import { Sheet } from '../components/Modals';
 import { colors, radius, space } from '../theme';
-import { useApp, useDuration, useT } from '../store';
-import { dayKey, daysUntil } from '../lib/dates';
+import { useApp, useDuration, useT, useToday } from '../store';
+import { daysUntil } from '../lib/dates';
 import { currentStreak, dayTotals, totalsBySubject } from '../lib/stats';
 import { PRESETS, PRESET_ORDER, clampMinutes } from '../lib/presets';
 import type { Key } from '../i18n';
@@ -27,7 +27,7 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
   const dur = useDuration();
   const { subjects, sessions, dailyTargetMinutes, exam, pomodoro } = state;
 
-  const today = dayKey();
+  const today = useToday();
   const targetSeconds = dailyTargetMinutes * 60;
 
   const totals = useMemo(() => dayTotals(sessions), [sessions]);
@@ -97,11 +97,11 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
           color={done ? colors.good : colors.accent}
           gradientTo={done ? colors.good : '#b49bff'}
         >
-          <Text style={styles.bigTime}>{dur(todaySeconds)}</Text>
+          <Text style={styles.bigTime} testID="dial-total">{dur(todaySeconds)}</Text>
           <Text style={styles.dialCaption}>
             {t('ofTarget', { target: dur(targetSeconds) })}
           </Text>
-          <Text style={[styles.dialSub, done && { color: colors.good }]}>
+          <Text style={[styles.dialSub, done && { color: colors.good }]} testID="dial-remaining">
             {done
               ? t('targetDone', { time: dur(todaySeconds - targetSeconds) })
               : t('toGo', { time: dur(remaining) })}

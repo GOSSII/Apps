@@ -340,6 +340,24 @@ export function useDuration(): (seconds: number) => string {
   return useCallback((seconds: number) => humanDuration(seconds, state.lang), [state.lang]);
 }
 
+/** The current local day, re-rendering the caller when it rolls over.
+ *  This app is used past midnight more than most, and a dial still showing
+ *  yesterday's total at 00:05 would be telling the user a lie about a streak
+ *  they are in the middle of earning. Polling beats scheduling a timeout to
+ *  midnight: it also survives the device sleeping, or the clock/timezone
+ *  moving under us. */
+export function useToday(): string {
+  const [day, setDay] = useState(dayKey);
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = dayKey();
+      setDay(current => (current === now ? current : now));
+    }, 30_000);
+    return () => clearInterval(id);
+  }, []);
+  return day;
+}
+
 /** Re-renders once a second, but only while a timer is actually running. */
 export function useTicker(active: boolean): number {
   const [, setTick] = useState(0);

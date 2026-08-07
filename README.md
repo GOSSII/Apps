@@ -102,6 +102,9 @@ Five decisions worth knowing:
   `runningSince` plus banked seconds, so time spent with the app swiped away —
   or the phone face-down for two hours — is still counted. A `setInterval` only
   drives the display, and only while the clock is visibly running.
+- **The screen follows the day over, not just the data.** Day windows are
+  recomputed when the local date changes, so an app left open at 00:01 shows
+  the new day rather than last night's total.
 - **Days are local calendar days, dated by when the clock stopped.** A session
   ending at 1am belongs to that 1am day. Crucially that means the instant the
   timer stopped, not the instant the user got round to tapping save: a round
@@ -137,13 +140,18 @@ check that every Hindi string keeps the same `{placeholders}` as its English
 original.
 
 The UI is additionally driven end-to-end in a browser (react-native-web +
-headless Chromium) across 37 checks: a fixed round run to completion, the
+headless Chromium) — see `e2e/` for how to run them. 37 checks cover: a fixed round run to completion, the
 break that follows it, skipping a break, open-ended sittings, pause freezing
 the countdown, distraction counts surfacing in focus mode, the calendar and
 clean-round stats, a round finished last night and saved this morning landing
 on last night, moving a past sitting to another subject and date (and the
 refusal to move one into the future), the Hindi switch across the new screens,
 and persistence across a full reload.
+
+A second script, `e2e/run-midnight.js`, installs a fake clock at 23:59:30 and
+fast-forwards past midnight with the app left open. Without the day-rollover
+handling it fails loudly: the dial keeps yesterday's total and announces
+"Target done" for a day with nothing studied in it.
 
 ## Compared to Flipd
 
