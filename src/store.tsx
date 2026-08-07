@@ -152,7 +152,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const startTimer = useCallback((subjectId: string) => {
     setState(s => {
       const banked = s.active ? bank(s) : s;
-      const round = s.active?.kind === 'break' ? s.active.round + 1 : 1;
+      /* Every sitting started while another is on screen continues the
+         cycle — whether it follows a break or another round. */
+      const round = s.active ? s.active.round + 1 : 1;
       return {
         ...banked,
         active: {

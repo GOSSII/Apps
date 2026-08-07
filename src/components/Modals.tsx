@@ -25,12 +25,14 @@ export function Sheet({ visible, title, onClose, children }: {
 }
 
 export function Confirm({
-  visible, title, message, confirmLabel, onConfirm, onCancel, destructive
+  visible, title, message, confirmLabel, cancelLabel, onConfirm, onCancel, destructive
 }: {
   visible: boolean;
   title: string;
   message?: string;
   confirmLabel: string;
+  /** Passed in rather than hardcoded — this dialog appears in Hindi too. */
+  cancelLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
   destructive?: boolean;
@@ -39,7 +41,7 @@ export function Confirm({
     <Sheet visible={visible} title={title} onClose={onCancel}>
       {!!message && <Text style={styles.message}>{message}</Text>}
       <View style={styles.row}>
-        <Button label="Cancel" variant="ghost" onPress={onCancel} style={styles.flex} />
+        <Button label={cancelLabel} variant="ghost" onPress={onCancel} style={styles.flex} />
         <Button
           label={confirmLabel}
           variant={destructive ? 'danger' : 'primary'}

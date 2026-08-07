@@ -135,6 +135,7 @@ export default function SubjectsScreen() {
             : t('cannotUndo')
         }
         confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
         destructive
         onCancel={() => setDeleting(null)}
         onConfirm={() => {

@@ -1,8 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AppState } from '../types';
+import type { ActiveTimer, AppState } from '../types';
 import { defaultPomodoro } from './presets';
 
 const KEY = 'padhai-streak:v1';
+/* Unreadable data is kept, not thrown away — someone's whole study history
+   is not worth losing to one bad write. */
+const SALVAGE_KEY = 'padhai-streak:v1:unreadable';
 
 export const emptyState = (): AppState => ({
   v: 1,
@@ -16,9 +19,27 @@ export const emptyState = (): AppState => ({
   pomodoro: defaultPomodoro()
 });
 
+/** An active timer saved by an older version lacks the round fields; without
+ *  defaults the focus screen renders "Round undefined" and cannot be left. */
+function normaliseActive(active: unknown): ActiveTimer | null {
+  if (!active || typeof active !== 'object') return null;
+  const a = active as Partial<ActiveTimer>;
+  if (typeof a.subjectId !== 'string') return null;
+  return {
+    subjectId: a.subjectId,
+    runningSince: typeof a.runningSince === 'number' ? a.runningSince : null,
+    bankedSeconds: typeof a.bankedSeconds === 'number' ? a.bankedSeconds : 0,
+    plannedSeconds: typeof a.plannedSeconds === 'number' ? a.plannedSeconds : null,
+    kind: a.kind === 'break' ? 'break' : 'focus',
+    distractions: typeof a.distractions === 'number' ? a.distractions : 0,
+    round: typeof a.round === 'number' && a.round > 0 ? a.round : 1
+  };
+}
+
 export async function loadState(): Promise<AppState> {
+  let raw: string | null = null;
   try {
-    const raw = await AsyncStorage.getItem(KEY);
+    raw = await AsyncStorage.getItem(KEY);
     if (!raw) return emptyState();
     const parsed = JSON.parse(raw) as Partial<AppState>;
     const base = emptyState();
@@ -30,10 +51,15 @@ export async function loadState(): Promise<AppState> {
       /* Older saves predate these fields — merge rather than replace, so an
          upgrade never lands the user on `undefined`. */
       reminder: { ...base.reminder, ...(parsed.reminder ?? {}) },
-      pomodoro: { ...base.pomodoro, ...(parsed.pomodoro ?? {}) }
+      pomodoro: { ...base.pomodoro, ...(parsed.pomodoro ?? {}) },
+      active: normaliseActive(parsed.active)
     };
   } catch (err) {
     console.warn('Could not read saved data, starting fresh', err);
+    if (raw) {
+      // Keep the unreadable payload so nothing is destroyed by starting over.
+      await AsyncStorage.setItem(SALVAGE_KEY, raw).catch(() => {});
+    }
     return emptyState();
   }
 }

@@ -45,9 +45,10 @@ export default function FocusScreen() {
       void cancelRoundEnd();
       return;
     }
-    const left = plannedSeconds - Math.floor((Date.now() - runningSince) / 1000);
+    /* Time already banked from earlier stretches counts too, or the alarm
+       fires late by however long the round was paused. */
     void scheduleRoundEnd(
-      left,
+      remainingOf(active) ?? 0,
       kind === 'break' ? t('breakOver') : t('roundComplete'),
       kind === 'break' ? t('backToStudy') : t('roundSaved', { time: dur(plannedSeconds), subject: subjectName })
     );
@@ -151,14 +152,17 @@ export default function FocusScreen() {
               <Button
                 label={t('takeBreak', { time: dur(breakSeconds) })}
                 testID="focus-break"
-                onPress={() => { stopTimer(); startBreak(); }}
+                /* startBreak banks the finished round itself — calling
+                   stopTimer first would clear `active` and the break would
+                   fall back to the first subject in the list. */
+                onPress={startBreak}
                 style={styles.wide}
               />
               <Button
                 label={t('anotherRound')}
                 variant="ghost"
                 testID="focus-again"
-                onPress={() => { stopTimer(); startTimer(active.subjectId); }}
+                onPress={() => startTimer(active.subjectId)}
                 style={styles.wide}
               />
               <Button

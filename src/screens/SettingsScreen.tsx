@@ -7,7 +7,7 @@ import { useApp, useT, useDuration } from '../store';
 import { LANGUAGES, type Key, type Lang } from '../i18n';
 import { PRESETS, PRESET_ORDER } from '../lib/presets';
 import type { PresetKey } from '../types';
-import { daysUntil, parseDateInput, prettyDate } from '../lib/dates';
+import { dateInputValue, daysUntil, parseDateInput, prettyDate } from '../lib/dates';
 import {
   cancelDailyReminder, formatTime, parseTimeInput, scheduleDailyReminder
 } from '../lib/notifications';
@@ -29,7 +29,7 @@ export default function SettingsScreen() {
   const { dailyTargetMinutes, exam, lang, reminder, pomodoro } = state;
 
   const [examName, setExamName] = useState(exam?.name ?? '');
-  const [examDate, setExamDate] = useState(exam ? prettyDate(exam.date) : '');
+  const [examDate, setExamDate] = useState(exam ? dateInputValue(exam.date) : '');
   const [dateError, setDateError] = useState<string | null>(null);
   const [timeText, setTimeText] = useState(formatTime(reminder.hour, reminder.minute));
   const [reminderError, setReminderError] = useState<string | null>(null);
@@ -238,6 +238,7 @@ export default function SettingsScreen() {
         title={t('eraseTitle')}
         message={t('eraseMsg')}
         confirmLabel={t('erase')}
+        cancelLabel={t('cancel')}
         destructive
         onCancel={() => setConfirmReset(false)}
         onConfirm={() => {

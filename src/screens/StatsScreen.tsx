@@ -6,7 +6,7 @@ import { Confirm, Sheet } from '../components/Modals';
 import { colors, radius, space } from '../theme';
 import { useApp, useT, useDuration } from '../store';
 import { hours } from '../lib/format';
-import { dayKey, parseDateInput, prettyDate, weekdayLetter } from '../lib/dates';
+import { dateInputValue, dayKey, parseDateInput, prettyDate, weekdayLetter } from '../lib/dates';
 import { bestStreak, dayTotals, recentDays, totalsBySubject } from '../lib/stats';
 import { addDays } from '../lib/dates';
 
@@ -183,7 +183,7 @@ export default function StatsScreen() {
                 setEditing({
                   id: session.id,
                   minutes: String(Math.round(session.seconds / 60)),
-                  date: prettyDate(session.day),
+                  date: dateInputValue(session.day),
                   subjectId: session.subjectId
                 });
               }}
@@ -316,6 +316,7 @@ export default function StatsScreen() {
             })
           : undefined}
         confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
         destructive
         onCancel={() => setDeleting(null)}
         onConfirm={() => {
