@@ -82,6 +82,9 @@ export function parseBackup(text: string): ParseResult {
        celebration the user already had this morning on the old one. */
     celebratedDay:
       typeof incoming.celebratedDay === 'string' ? incoming.celebratedDay : null,
+    /* Restoring a backup is never a first run: whoever has a file to restore
+       has already set the app up once, on the phone the file came from. */
+    onboarded: true,
     active: null
   };
 

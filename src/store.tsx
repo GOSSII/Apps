@@ -87,6 +87,8 @@ type Actions = {
   setPomodoro(pomodoro: Pomodoro): void;
   /** Records that today's target-hit has been celebrated. */
   markCelebrated(day: string): void;
+  /** Marks first-run setup as finished, however it ended. */
+  finishOnboarding(): void;
   setThemePref(pref: ThemePref): void;
   /** Swaps in a restored backup wholesale. */
   replaceAll(next: AppState): void;
@@ -330,24 +332,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(s => (s.celebratedDay === day ? s : { ...s, celebratedDay: day }));
   }, []);
 
+  const finishOnboarding = useCallback(() => {
+    setState(s => (s.onboarded ? s : { ...s, onboarded: true }));
+  }, []);
+
   const replaceAll = useCallback((next: AppState) => {
     /* A restore never carries a running timer across — see serialiseBackup. */
     setState({ ...next, active: null });
   }, []);
 
-  const resetAll = useCallback(() => setState(emptyState()), []);
+  /* Erasing your study data is not the same as being a new user: the setup
+     was done, and being dropped back into a four-step wizard for tapping
+     "Erase" is a surprise nobody asked for. */
+  const resetAll = useCallback(
+    () => setState({ ...emptyState(), onboarded: true }),
+    []
+  );
 
   const value = useMemo<Ctx>(() => ({
     state, ready,
     addSubject, renameSubject, deleteSubject,
     startTimer, startBreak, pauseTimer, resumeTimer, stopTimer, discardTimer,
     logManual, editSession, deleteSession, setDailyTarget, setExam,
-    setLang, setReminder, setPomodoro, setThemePref, markCelebrated,
+    setLang, setReminder, setPomodoro, setThemePref, markCelebrated, finishOnboarding,
     replaceAll, resetAll
   }), [state, ready, addSubject, renameSubject, deleteSubject, startTimer,
        startBreak, pauseTimer, resumeTimer, stopTimer, discardTimer, logManual,
        editSession, deleteSession, setDailyTarget, setExam, setLang, setReminder,
-       setPomodoro, setThemePref, markCelebrated, replaceAll, resetAll]);
+       setPomodoro, setThemePref, markCelebrated, finishOnboarding, replaceAll,
+       resetAll]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

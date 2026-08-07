@@ -34,7 +34,10 @@ const seeded = {
 
   console.log('bundling…');
   await page.goto(BASE, { waitUntil: 'domcontentloaded' });
-  await page.getByText('Today', { exact: true }).first().waitFor({ timeout: 180000 });
+  /* A blank profile is a first run now, so wait for whichever of the two
+     the app legitimately opens on. */
+  await page.locator('[data-testid="ob-title"], [data-testid="tab-today"]')
+    .first().waitFor({ timeout: 180000 });
   await page.evaluate(s => localStorage.setItem('padhai-streak:v1', JSON.stringify(s)), seeded);
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(1200);
@@ -57,10 +60,20 @@ const seeded = {
   check('the file carries the history', parsed.state.sessions.length === 2);
   check('the file carries no running timer', parsed.state.active === null);
 
-  // ---- wipe, then restore from that text ----
+  // ---- a brand-new phone, then restore from that text ----
+  /* Clearing the key is not "the app with no data" — it is a fresh install,
+     which is the case restore exists for. So the path to Settings now runs
+     through first-run setup, and that has to actually be walkable. */
   await page.evaluate(() => localStorage.removeItem('padhai-streak:v1'));
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(1400);
+  check('a fresh install starts at setup, the way a new phone would',
+    await page.getByTestId('ob-title').isVisible());
+  await page.getByTestId('ob-skip').click();
+  await page.waitForTimeout(900);
+  check('setup can be skipped to get at the restore',
+    await page.getByTestId('tab-settings').isVisible());
+
   await page.getByTestId('tab-stats').click();
   await page.waitForTimeout(500);
   check('the app really is empty before restoring',

@@ -7,9 +7,9 @@ clock for a subject, and the app answers the only question that matters at
 Built with React Native + Expo. Runs on Android and iPhone from one codebase.
 English and हिंदी. No login, no server, no internet needed.
 
-| Today | Focus mode | Target hit | Stats |
-| --- | --- | --- | --- |
-| ![Today](docs/screenshots/shot-today.png) | ![Focus](docs/screenshots/shot-focus.png) | ![Target hit](docs/screenshots/shot-celebrate.png) | ![Stats](docs/screenshots/shot-stats.png) |
+| First run | Today | Focus mode | Target hit | Stats |
+| --- | --- | --- | --- | --- |
+| ![First run](docs/screenshots/shot-onboarding-target.png) | ![Today](docs/screenshots/shot-today.png) | ![Focus](docs/screenshots/shot-focus.png) | ![Target hit](docs/screenshots/shot-celebrate.png) | ![Stats](docs/screenshots/shot-stats.png) |
 
 And in the dark, which is when a lot of this app actually gets used:
 
@@ -42,6 +42,12 @@ notebook and honest about the numbers.
   phone — and both palettes are held to WCAG AA by a test, not by eye.
 
 ## Features
+
+**Getting started**
+
+- Four questions on first run — language, exam, daily target, subjects — all
+  skippable, and never shown again
+- Skipping still leaves a usable app on sensible defaults
 
 **Focus rounds**
 
@@ -112,7 +118,7 @@ src/lib/presets.ts       round/break lengths
 src/lib/celebrate.ts     when the day's target is worth marking
 src/components/          Ring (SVG dial), Card, Button, Chip, Sheet, Confirm,
                          Celebration + Confetti
-src/screens/             Today, Focus, Stats, Subjects, Settings
+src/screens/             Onboarding, Today, Focus, Stats, Subjects, Settings
 ```
 
 Five decisions worth knowing:
@@ -159,6 +165,15 @@ Five decisions worth knowing:
   celebration during a break does not fight the timer for the JS thread. With
   reduce-motion on it is dropped entirely rather than slowed — the message is
   the part that matters.
+- **First run asks four questions, and an existing user never sees them.**
+  Language, exam, daily target, subjects — the settings a new user would
+  otherwise have to go looking for, asked once and then gone. The flag that
+  records it defaults to *true* for any save that predates it, because a save
+  that exists belongs to someone already using the app; defaulting it to false
+  would greet them, on upgrade, with a wizard for an app they have used for
+  weeks. Erasing your data keeps the flag too — clearing your history is not
+  the same as being a new user, and a four-step wizard is not what "Erase"
+  promised.
 - **The calendar's rows are weekdays, and now say so.** 84 days ending today
   divides evenly by seven, so row *N* of the grid is always the same weekday —
   which makes "I always lose Sundays" visible, but only once the rows are
@@ -189,7 +204,7 @@ Five decisions worth knowing:
 ## Testing
 
 ```sh
-npm test          # 113 unit tests (jest-expo)
+npm test          # 118 unit tests (jest-expo)
 npm run typecheck # tsc --noEmit
 ```
 
@@ -199,13 +214,14 @@ leap-day boundaries, rejection of impossible dates like 31 February and times
 like 25:00, the timer's pause/resume/app-closed arithmetic, round crediting
 (capped at the planned length, honest when ended early), the instant a stopped
 round is dated to, when a day's target is worth celebrating and the several
-ways it must stay quiet, weekday letters in both languages and the fact that
+ways it must stay quiet, who counts as already onboarded, weekday letters in
+both languages and the fact that
 the calendar's rows really are fixed weekdays, preset lengths, storage upgrades from older saves, a
 check that every Hindi string keeps the same `{placeholders}` as its English
 original, and both palettes measured against every ground they are painted on.
 
 The UI is additionally driven end-to-end in a browser (react-native-web +
-headless Chromium) — see `e2e/` for how to run them, 113 checks in all. The main
+headless Chromium) — see `e2e/` for how to run them, 149 checks in all. The main
 script's 43 cover: a fixed round run to completion, the
 break that follows it, skipping a break, open-ended sittings, pause freezing
 the countdown, distraction counts surfacing in focus mode, the calendar and

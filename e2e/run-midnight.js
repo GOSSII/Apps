@@ -26,7 +26,10 @@ const check = (name, ok, extra = '') => {
 
   console.log('bundling…');
   await page.goto(BASE, { waitUntil: 'domcontentloaded' });
-  await page.getByText('Today', { exact: true }).first().waitFor({ timeout: 180000 });
+  /* A blank profile is a first run now, so wait for whichever of the two
+     the app legitimately opens on. */
+  await page.locator('[data-testid="ob-title"], [data-testid="tab-today"]')
+    .first().waitFor({ timeout: 180000 });
 
   await page.evaluate(() => {
     localStorage.setItem('padhai-streak:v1', JSON.stringify({

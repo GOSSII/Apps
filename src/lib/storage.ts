@@ -19,7 +19,8 @@ export const emptyState = (): AppState => ({
   reminder: { enabled: false, hour: 21, minute: 0 },
   pomodoro: defaultPomodoro(),
   themePref: 'system',
-  celebratedDay: null
+  celebratedDay: null,
+  onboarded: false
 });
 
 /** Subject colours were chosen when only the light ground existed. Left alone
@@ -69,6 +70,10 @@ export async function loadState(): Promise<AppState> {
         ? (parsed.themePref as ThemePref)
         : base.themePref,
       celebratedDay: typeof parsed.celebratedDay === 'string' ? parsed.celebratedDay : null,
+      /* A save that predates onboarding belongs to someone already using the
+         app. Defaulting it to false would greet them, on upgrade, with a
+         first-run wizard for an app they have been using for weeks. */
+      onboarded: typeof parsed.onboarded === 'boolean' ? parsed.onboarded : true,
       /* Older saves predate these fields — merge rather than replace, so an
          upgrade never lands the user on `undefined`. */
       reminder: { ...base.reminder, ...(parsed.reminder ?? {}) },

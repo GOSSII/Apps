@@ -155,3 +155,16 @@ describe('a backup from before the app had a dark ground', () => {
     expect(older.state.themePref).toBe('system');
   });
 });
+
+describe('restoring is never a first run', () => {
+  it('a restored state is always onboarded', () => {
+    // Whoever has a file to restore already set the app up on the phone it
+    // came from; walking them through it again would be absurd.
+    const result = parseBackup(JSON.stringify({
+      kind: BACKUP_KIND, version: 1,
+      state: { subjects: [], sessions: [], onboarded: false }
+    }));
+    if (!result.ok) throw new Error('expected a good parse');
+    expect(result.state.onboarded).toBe(true);
+  });
+});
