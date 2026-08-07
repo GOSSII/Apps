@@ -102,9 +102,11 @@ Five decisions worth knowing:
   `runningSince` plus banked seconds, so time spent with the app swiped away —
   or the phone face-down for two hours — is still counted. A `setInterval` only
   drives the display, and only while the clock is visibly running.
-- **Days are local calendar days.** A session ending at 1am belongs to that
-  1am day. Someone studying past midnight has started a new day, and pretending
-  otherwise would make streaks lie.
+- **Days are local calendar days, dated by when the clock stopped.** A session
+  ending at 1am belongs to that 1am day. Crucially that means the instant the
+  timer stopped, not the instant the user got round to tapping save: a round
+  that ran out at 23:20 and is saved the next morning still belongs to last
+  night, along with the streak it earned.
 - **Confirmations are Modals, not `Alert.alert`.** `Alert` is unreliable on
   web, and the app is previewed there during development.
 - **A finished round freezes, it does not auto-save.** The clock stops and the
@@ -121,7 +123,7 @@ Five decisions worth knowing:
 ## Testing
 
 ```sh
-npm test          # 42 unit tests (jest-expo)
+npm test          # 55 unit tests (jest-expo)
 npm run typecheck # tsc --noEmit
 ```
 
@@ -129,15 +131,17 @@ Unit tests cover the logic that is easy to get quietly wrong: streaks across
 missed days and in-progress days, best-streak detection across gaps, month and
 leap-day boundaries, rejection of impossible dates like 31 February and times
 like 25:00, the timer's pause/resume/app-closed arithmetic, round crediting
-(capped at the planned length, honest when ended early), preset lengths, and a
+(capped at the planned length, honest when ended early), the instant a stopped
+round is dated to, preset lengths, storage upgrades from older saves, and a
 check that every Hindi string keeps the same `{placeholders}` as its English
 original.
 
 The UI is additionally driven end-to-end in a browser (react-native-web +
-headless Chromium) across 32 checks: a fixed round run to completion, the
+headless Chromium) across 37 checks: a fixed round run to completion, the
 break that follows it, skipping a break, open-ended sittings, pause freezing
 the countdown, distraction counts surfacing in focus mode, the calendar and
-clean-round stats, moving a past sitting to another subject and date (and the
+clean-round stats, a round finished last night and saved this morning landing
+on last night, moving a past sitting to another subject and date (and the
 refusal to move one into the future), the Hindi switch across the new screens,
 and persistence across a full reload.
 

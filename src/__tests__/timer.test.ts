@@ -1,4 +1,4 @@
-import { creditedSeconds, elapsedOf, isRoundDone, remainingOf } from '../store';
+import { creditedSeconds, elapsedOf, isRoundDone, remainingOf, stopInstant } from '../store';
 import type { ActiveTimer } from '../types';
 
 const NOW = 1_800_000_000_000;
@@ -7,6 +7,7 @@ const timer = (patch: Partial<ActiveTimer> = {}): ActiveTimer => ({
   subjectId: 'a',
   runningSince: NOW,
   bankedSeconds: 0,
+  pausedAt: null,
   plannedSeconds: null,
   kind: 'focus',
   distractions: 0,
@@ -78,5 +79,36 @@ describe('isRoundDone', () => {
     const round = timer({ plannedSeconds: 1500 });
     expect(isRoundDone(round, NOW + 1_499_000)).toBe(false);
     expect(isRoundDone(round, NOW + 1_500_000)).toBe(true);
+  });
+});
+
+describe('stopInstant', () => {
+  it('is now for a running open-ended sitting', () => {
+    expect(stopInstant(timer(), NOW + 5_000)).toBe(NOW + 5_000);
+  });
+
+  it('is the moment a fixed round ran out, not the moment it is noticed', () => {
+    // The bug: a round that finished at 23:20 and was saved the next morning
+    // was dated to the next morning, so the night's study — and the streak it
+    // earned — moved to the wrong day.
+    const round = timer({ plannedSeconds: 1500 });
+    const nextMorning = NOW + 9 * 3600 * 1000;
+    expect(stopInstant(round, nextMorning)).toBe(NOW + 1_500_000);
+  });
+
+  it('is the pause instant once the clock is paused', () => {
+    const paused = timer({ runningSince: null, bankedSeconds: 600, pausedAt: NOW + 600_000 });
+    expect(stopInstant(paused, NOW + 86_400_000)).toBe(NOW + 600_000);
+  });
+
+  it('falls back to now for a paused timer with no recorded pause', () => {
+    // Older saves have no pausedAt; dating them to now beats crashing.
+    const legacy = timer({ runningSince: null, bankedSeconds: 600, pausedAt: null });
+    expect(stopInstant(legacy, NOW + 1000)).toBe(NOW + 1000);
+  });
+
+  it('never reports a stop time in the future for a running round', () => {
+    const round = timer({ plannedSeconds: 1500 });
+    expect(stopInstant(round, NOW + 60_000)).toBe(NOW + 60_000);
   });
 });

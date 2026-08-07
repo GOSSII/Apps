@@ -38,6 +38,19 @@ export function remainingOf(active: ActiveTimer | null, now = Date.now()): numbe
 export const isRoundDone = (active: ActiveTimer | null, now = Date.now()): boolean =>
   remainingOf(active, now) === 0;
 
+/** The instant the clock really stopped — which is what the session must be
+ *  dated by. A round that ran out at 23:20 belongs to that night even if the
+ *  app is not reopened until the next morning, and a fixed round stops when
+ *  its time is up, not when the phone is finally picked up. */
+export function stopInstant(active: ActiveTimer | null, now = Date.now()): number {
+  if (!active) return now;
+  if (active.runningSince === null) return active.pausedAt ?? now;
+  const wouldEnd = active.plannedSeconds
+    ? active.runningSince + (active.plannedSeconds - active.bankedSeconds) * 1000
+    : Infinity;
+  return Math.min(now, wouldEnd);
+}
+
 type Actions = {
   addSubject(name: string): void;
   renameSubject(id: string, name: string): void;
@@ -137,12 +150,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!s.active || s.active.kind === 'break' || seconds < 1) {
       return { ...s, active: null };
     }
+    const endedAt = stopInstant(s.active);
     const session: Session = {
       id: uid(),
       subjectId: s.active.subjectId,
-      day: dayKey(),
+      day: dayKey(new Date(endedAt)),
       seconds,
-      endedAt: Date.now(),
+      endedAt,
       distractions: s.active.distractions || undefined,
       planned: s.active.plannedSeconds ? true : undefined
     };
@@ -161,6 +175,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           subjectId,
           runningSince: Date.now(),
           bankedSeconds: 0,
+          pausedAt: null,
           plannedSeconds: focusSecondsOf(s.pomodoro),
           kind: 'focus',
           distractions: 0,
@@ -181,6 +196,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           subjectId,
           runningSince: Date.now(),
           bankedSeconds: 0,
+          pausedAt: null,
           plannedSeconds: breakSecondsOf(s.pomodoro) ?? 5 * 60,
           kind: 'break',
           distractions: 0,
@@ -195,7 +211,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!s.active?.runningSince) return s;
       return {
         ...s,
-        active: { ...s.active, bankedSeconds: elapsedOf(s.active), runningSince: null }
+        active: {
+          ...s.active,
+          /* Cap at the planned length so a round that overran while the phone
+             was in a pocket does not resume with a negative remainder. */
+          bankedSeconds: creditedSeconds(s.active),
+          pausedAt: stopInstant(s.active),
+          runningSince: null
+        }
       };
     });
   }, []);
@@ -203,7 +226,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const resumeTimer = useCallback(() => {
     setState(s => {
       if (!s.active || s.active.runningSince) return s;
-      return { ...s, active: { ...s.active, runningSince: Date.now() } };
+      return { ...s, active: { ...s.active, runningSince: Date.now(), pausedAt: null } };
     });
   }, []);
 

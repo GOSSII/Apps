@@ -47,6 +47,7 @@ describe('loadState', () => {
       subjectId: 's1',
       runningSince: 1_800_000_000_000,
       bankedSeconds: 42,
+      pausedAt: null,
       plannedSeconds: null,
       kind: 'focus',
       distractions: 0,

@@ -29,6 +29,7 @@ function normaliseActive(active: unknown): ActiveTimer | null {
     subjectId: a.subjectId,
     runningSince: typeof a.runningSince === 'number' ? a.runningSince : null,
     bankedSeconds: typeof a.bankedSeconds === 'number' ? a.bankedSeconds : 0,
+    pausedAt: typeof a.pausedAt === 'number' ? a.pausedAt : null,
     plannedSeconds: typeof a.plannedSeconds === 'number' ? a.plannedSeconds : null,
     kind: a.kind === 'break' ? 'break' : 'focus',
     distractions: typeof a.distractions === 'number' ? a.distractions : 0,

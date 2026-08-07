@@ -29,6 +29,9 @@ export type ActiveTimer = {
   runningSince: number | null;
   /** Seconds banked before the current resume. */
   bankedSeconds: number;
+  /** When the clock actually stopped, for a paused timer. Not the moment the
+   *  user got round to tapping save — that can be the next morning. */
+  pausedAt: number | null;
   /** Target length for a fixed round; null for an open-ended sitting. */
   plannedSeconds: number | null;
   /** A break does not count as study time and is never saved as a session. */
