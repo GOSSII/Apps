@@ -1,5 +1,5 @@
 import type { AppState } from '../types';
-import { emptyState } from './storage';
+import { emptyState, migrateSubjectColours } from './storage';
 import { dayKey } from './dates';
 
 /* A backup is the whole state plus a small header. Everything here is pure:
@@ -68,10 +68,20 @@ export function parseBackup(text: string): ParseResult {
   const state: AppState = {
     ...base,
     ...(incoming as Partial<AppState>),
-    subjects: incoming.subjects as AppState['subjects'],
+    /* A backup taken before the app had a dark ground carries the old subject
+       colours with it, so it gets the same migration a stored state does. */
+    subjects: migrateSubjectColours(incoming.subjects as AppState['subjects']),
     sessions: incoming.sessions as AppState['sessions'],
     reminder: { ...base.reminder, ...(isObject(incoming.reminder) ? incoming.reminder : {}) },
     pomodoro: { ...base.pomodoro, ...(isObject(incoming.pomodoro) ? incoming.pomodoro : {}) },
+    themePref:
+      incoming.themePref === 'light' || incoming.themePref === 'dark'
+        ? incoming.themePref
+        : base.themePref,
+    /* Carried across, so restoring onto a new phone at 9pm does not replay a
+       celebration the user already had this morning on the old one. */
+    celebratedDay:
+      typeof incoming.celebratedDay === 'string' ? incoming.celebratedDay : null,
     active: null
   };
 

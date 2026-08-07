@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "padhaistreak",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#F1F3FC",
     "ios": {
       "supportsTablet": true,
@@ -34,7 +34,10 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#F1F3FC"
+          "backgroundColor": "#F1F3FC",
+          "dark": {
+            "backgroundColor": "#0F1115"
+          }
         }
       ],
       [

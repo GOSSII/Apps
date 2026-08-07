@@ -3,7 +3,7 @@ import React, {
 } from 'react';
 import { AppState as RNAppState } from 'react-native';
 import type {
-  ActiveTimer, AppState, Exam, Pomodoro, Reminder, Session, Subject
+  ActiveTimer, AppState, Exam, Pomodoro, Reminder, Session, Subject, ThemePref
 } from './types';
 import { emptyState, loadState, saveState } from './lib/storage';
 import { dayKey } from './lib/dates';
@@ -85,6 +85,9 @@ type Actions = {
   setLang(lang: Lang): void;
   setReminder(reminder: Reminder): void;
   setPomodoro(pomodoro: Pomodoro): void;
+  /** Records that today's target-hit has been celebrated. */
+  markCelebrated(day: string): void;
+  setThemePref(pref: ThemePref): void;
   /** Swaps in a restored backup wholesale. */
   replaceAll(next: AppState): void;
   resetAll(): void;
@@ -319,6 +322,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(s => ({ ...s, pomodoro }));
   }, []);
 
+  const setThemePref = useCallback((themePref: ThemePref) => {
+    setState(s => ({ ...s, themePref }));
+  }, []);
+
+  const markCelebrated = useCallback((day: string) => {
+    setState(s => (s.celebratedDay === day ? s : { ...s, celebratedDay: day }));
+  }, []);
+
   const replaceAll = useCallback((next: AppState) => {
     /* A restore never carries a running timer across — see serialiseBackup. */
     setState({ ...next, active: null });
@@ -331,11 +342,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addSubject, renameSubject, deleteSubject,
     startTimer, startBreak, pauseTimer, resumeTimer, stopTimer, discardTimer,
     logManual, editSession, deleteSession, setDailyTarget, setExam,
-    setLang, setReminder, setPomodoro, replaceAll, resetAll
+    setLang, setReminder, setPomodoro, setThemePref, markCelebrated,
+    replaceAll, resetAll
   }), [state, ready, addSubject, renameSubject, deleteSubject, startTimer,
        startBreak, pauseTimer, resumeTimer, stopTimer, discardTimer, logManual,
        editSession, deleteSession, setDailyTarget, setExam, setLang, setReminder,
-       setPomodoro, replaceAll, resetAll]);
+       setPomodoro, setThemePref, markCelebrated, replaceAll, resetAll]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

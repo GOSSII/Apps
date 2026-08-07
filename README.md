@@ -7,9 +7,15 @@ clock for a subject, and the app answers the only question that matters at
 Built with React Native + Expo. Runs on Android and iPhone from one codebase.
 English and हिंदी. No login, no server, no internet needed.
 
-| Today | Focus mode | Round done | Stats |
+| Today | Focus mode | Target hit | Stats |
 | --- | --- | --- | --- |
-| ![Today](docs/screenshots/shot-today.png) | ![Focus](docs/screenshots/shot-focus.png) | ![Round complete](docs/screenshots/shot-round-done.png) | ![Stats](docs/screenshots/shot-stats.png) |
+| ![Today](docs/screenshots/shot-today.png) | ![Focus](docs/screenshots/shot-focus.png) | ![Target hit](docs/screenshots/shot-celebrate.png) | ![Stats](docs/screenshots/shot-stats.png) |
+
+And in the dark, which is when a lot of this app actually gets used:
+
+| Today | Focus mode | Target hit | Stats | Settings |
+| --- | --- | --- | --- | --- |
+| ![Today, dark](docs/screenshots/shot-dark-today.png) | ![Focus, dark](docs/screenshots/shot-dark-focus.png) | ![Target hit, dark](docs/screenshots/shot-dark-celebrate.png) | ![Stats, dark](docs/screenshots/shot-dark-stats.png) | ![Settings, dark](docs/screenshots/shot-dark-settings.png) |
 
 ## Why this one
 
@@ -29,6 +35,11 @@ notebook and honest about the numbers.
 - **Hindi is a first-class language,** down to the duration units (`4घं 30मि`,
   not `4h 30m`). A large share of the audience preps in Hindi medium.
 - **Offline and private.** Everything is on the phone. No account, no upload.
+- **The day's target is marked, once.** Crossing it gets confetti and the
+  streak; the same day reopened gets nothing. A tracker that congratulates you
+  every time you open it stops meaning anything.
+- **Dark, because 1am is a normal study hour.** Light, dark, or follow the
+  phone — and both palettes are held to WCAG AA by a test, not by eye.
 
 ## Features
 
@@ -48,8 +59,10 @@ notebook and honest about the numbers.
 **Tracking**
 
 - Daily target shown as a dial, with a streak counter
+- Crossing the target celebrates — once a day, with a bigger moment on the
+  first day ever and on milestone streaks
 - 7-day and 30-day bar charts against your target line
-- 12-week calendar heatmap
+- 12-week calendar heatmap, with weekday rows and a colour scale you can read
 - Subject breakdown for this week or all time
 - Recent sittings list — change a sitting's length, date or subject, or delete it
 - Best streak, total hours, sittings, phone checks
@@ -57,6 +70,7 @@ notebook and honest about the numbers.
 - Manual entry for study you did away from the phone
 - Exam name + date countdown
 - One daily reminder notification, at a time you choose
+- Light or dark, or follow the phone
 - Full English / हिंदी interface
 
 ## Run it
@@ -86,7 +100,7 @@ App.tsx                  tab shell, or focus mode when a round is running
 src/store.tsx            state, actions, persistence, useT/useDuration hooks
 src/i18n.ts              English + Hindi dictionaries
 src/types.ts             Subject, Session, ActiveTimer, Reminder, AppState
-src/theme.ts             colours and spacing
+src/theme.tsx            both palettes, the theme provider, spacing
 src/lib/storage.ts       AsyncStorage load/save
 src/lib/dates.ts         local-day keys, date parsing
 src/lib/stats.ts         day totals, streaks, subject totals
@@ -95,7 +109,9 @@ src/lib/notifications.ts daily reminder scheduling
 src/lib/backup.ts        backup serialise/parse (pure, heavily tested)
 src/lib/backupTransport.ts  file, share sheet, picker (platform-specific)
 src/lib/presets.ts       round/break lengths
-src/components/          Ring (SVG dial), Card, Button, Chip, Sheet, Confirm
+src/lib/celebrate.ts     when the day's target is worth marking
+src/components/          Ring (SVG dial), Card, Button, Chip, Sheet, Confirm,
+                         Celebration + Confetti
 src/screens/             Today, Focus, Stats, Subjects, Settings
 ```
 
@@ -117,12 +133,38 @@ Five decisions worth knowing:
 - **A restore says what it holds before it overwrites.** The file is parsed
   first, so the confirmation names how many sittings are at stake rather than
   asking for a blind yes.
-- **Colours are computed against their own ground, not picked by eye.** The
-  palette is light — a lavender ground, white cards, royal indigo — and every
-  value clears WCAG AA where it actually sits: text 13.7:1, muted 4.6:1, accent
-  5.9:1 as text and 6.5:1 behind white button labels. The accent runs a little
-  deeper than the app it is modelled on, which puts its blue on white at display
-  sizes where the bar is lower.
+- **Colours are computed against their own ground, not picked by eye.** Both
+  palettes clear WCAG AA on every surface they are used on, and a unit test
+  fails if an edit drops one below the bar — which it did, three times, during
+  the dark-mode work. Light is a lavender ground with white cards and a royal
+  indigo accent; dark is a near-black ground with cards that are *lighter* than
+  it, because a shadow on a dark ground separates nothing.
+- **Subject colours are the hard case, and they are solved once.** A subject's
+  colour is written onto it when it is created, so it cannot follow the theme —
+  one value has to work on both grounds. The palette is the set that clears 3:1
+  on all six surfaces a subject dot can land on, which is why they are mid-tones
+  rather than the brighter set either theme would have picked alone. Subjects
+  created before dark mode existed are migrated on load and on restore, so
+  nobody is left with a dot they cannot see.
+- **The celebration fires once a day, and remembers.** Crossing the daily
+  target is marked with confetti; the day is banked the instant the card is
+  shown, so reopening the app that evening — or restoring the backup onto
+  another phone — gets nothing. It is deliberately not per round: a Classic
+  25/5 day is nine rounds, and nine celebrations before lunch is a popup, not a
+  moment. The first target ever met outranks a milestone streak, so someone who
+  backfills a week of past study is told they have started rather than handed a
+  seven-day trophy for an afternoon of typing.
+- **Confetti runs on one clock, and stops when asked.** Thirty-four pieces
+  interpolate their own slice of a single native-driver `Animated.Value`, so a
+  celebration during a break does not fight the timer for the JS thread. With
+  reduce-motion on it is dropped entirely rather than slowed — the message is
+  the part that matters.
+- **The calendar's rows are weekdays, and now say so.** 84 days ending today
+  divides evenly by seven, so row *N* of the grid is always the same weekday —
+  which makes "I always lose Sundays" visible, but only once the rows are
+  labelled. They are, in Hindi as well as English, and an empty twelve weeks
+  now says it is empty rather than showing 84 identical squares under a legend
+  about colour.
 - **The screen follows the day over, not just the data.** Day windows are
   recomputed when the local date changes, so an app left open at 00:01 shows
   the new day rather than last night's total.
@@ -147,7 +189,7 @@ Five decisions worth knowing:
 ## Testing
 
 ```sh
-npm test          # 71 unit tests (jest-expo)
+npm test          # 113 unit tests (jest-expo)
 npm run typecheck # tsc --noEmit
 ```
 
@@ -156,12 +198,15 @@ missed days and in-progress days, best-streak detection across gaps, month and
 leap-day boundaries, rejection of impossible dates like 31 February and times
 like 25:00, the timer's pause/resume/app-closed arithmetic, round crediting
 (capped at the planned length, honest when ended early), the instant a stopped
-round is dated to, preset lengths, storage upgrades from older saves, and a
+round is dated to, when a day's target is worth celebrating and the several
+ways it must stay quiet, weekday letters in both languages and the fact that
+the calendar's rows really are fixed weekdays, preset lengths, storage upgrades from older saves, a
 check that every Hindi string keeps the same `{placeholders}` as its English
-original.
+original, and both palettes measured against every ground they are painted on.
 
 The UI is additionally driven end-to-end in a browser (react-native-web +
-headless Chromium) — see `e2e/` for how to run them. 37 checks cover: a fixed round run to completion, the
+headless Chromium) — see `e2e/` for how to run them, 113 checks in all. The main
+script's 43 cover: a fixed round run to completion, the
 break that follows it, skipping a break, open-ended sittings, pause freezing
 the countdown, distraction counts surfacing in focus mode, the calendar and
 clean-round stats, a round finished last night and saved this morning landing
@@ -173,7 +218,18 @@ and persistence across a full reload.
 wipes the app, and restores from that file's text — including what happens when
 the pasted text is junk or belongs to another app.
 
-A second script, `e2e/run-midnight.js`, installs a fake clock at 23:59:30 and
+`e2e/run-theme.js` drives dark mode through the browser twice — once with the
+OS reporting light and once dark — and reads the colours the app actually
+painted rather than the ones the token file claims. It also proves the subject
+migration end to end, by seeding a subject in the old colour and checking no
+such dot reaches the screen.
+
+`e2e/run-celebrate.js` is mostly about the celebration *not* happening. Firing
+is one check; the rest are the ways it must stay silent — a day still short of
+the target, a day already celebrated, a reload that evening, a state restored
+from a phone where it was already seen, and the midnight rollover.
+
+A further script, `e2e/run-midnight.js`, installs a fake clock at 23:59:30 and
 fast-forwards past midnight with the app left open. Without the day-rollover
 handling it fails loudly: the dial keeps yesterday's total and announces
 "Target done" for a day with nothing studied in it.

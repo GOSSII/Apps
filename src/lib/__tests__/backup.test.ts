@@ -5,8 +5,8 @@ import type { AppState } from '../../types';
 const full = (): AppState => ({
   ...emptyState(),
   subjects: [
-    { id: 's1', name: 'Physics', color: '#7c5cff' },
-    { id: 's2', name: 'रसायन', color: '#22c55e' }
+    { id: 's1', name: 'Physics', color: '#5B78E0' },
+    { id: 's2', name: 'रसायन', color: '#1F8F84' }
   ],
   sessions: [
     { id: 'a', subjectId: 's1', day: '2026-08-01', seconds: 5400, endedAt: 10, planned: true },
@@ -123,5 +123,35 @@ describe('older backups', () => {
 describe('backupFilename', () => {
   it('is dated so several backups sit side by side', () => {
     expect(backupFilename(new Date(2026, 7, 7))).toBe('padhai-streak-2026-08-07.json');
+  });
+});
+
+describe('a backup from before the app had a dark ground', () => {
+  it('brings its subjects forward to colours that survive both', () => {
+    // Restoring one untouched would leave the user with dots they cannot see
+    // the moment they turn dark mode on.
+    const old = JSON.stringify({
+      kind: BACKUP_KIND,
+      version: 1,
+      state: {
+        subjects: [{ id: 's1', name: 'Physics', color: '#3552CC' }],
+        sessions: []
+      }
+    });
+    const result = parseBackup(old);
+    if (!result.ok) throw new Error('expected a good parse');
+    expect(result.state.subjects[0].color).toBe('#5B78E0');
+  });
+
+  it('lands on the system theme, since it cannot have expressed a preference', () => {
+    const result = parseBackup(serialiseBackup({ ...full(), themePref: 'dark' }));
+    if (!result.ok) throw new Error('expected a good parse');
+    expect(result.state.themePref).toBe('dark');
+
+    const older = parseBackup(JSON.stringify({
+      kind: BACKUP_KIND, version: 1, state: { subjects: [], sessions: [] }
+    }));
+    if (!older.ok) throw new Error('expected a good parse');
+    expect(older.state.themePref).toBe('system');
   });
 });

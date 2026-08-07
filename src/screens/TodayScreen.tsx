@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { Ring } from '../components/Ring';
 import { Button, Card, Chip, Dot, Empty, SectionTitle } from '../components/ui';
 import { Sheet } from '../components/Modals';
-import { colors, radius, space } from '../theme';
+import { radius, space, themed, useColors } from '../theme';
 import { useApp, useDuration, useT, useToday } from '../store';
 import { daysUntil } from '../lib/dates';
 import { currentStreak, dayTotals, totalsBySubject } from '../lib/stats';
@@ -25,6 +25,8 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
   const { state, startTimer, logManual, setPomodoro } = useApp();
   const t = useT();
   const dur = useDuration();
+  const styles = useStyles();
+  const colors = useColors();
   const { subjects, sessions, dailyTargetMinutes, exam, pomodoro } = state;
 
   const today = useToday();
@@ -95,13 +97,13 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
           stroke={16}
           progress={todaySeconds / targetSeconds}
           color={done ? colors.good : colors.accent}
-          gradientTo={done ? colors.good : '#6C8BFF'}
+          gradientTo={done ? colors.good : colors.accentGlow}
         >
           <Text style={styles.bigTime} testID="dial-total">{dur(todaySeconds)}</Text>
           <Text style={styles.dialCaption}>
             {t('ofTarget', { target: dur(targetSeconds) })}
           </Text>
-          <Text style={[styles.dialSub, done && { color: colors.good }]} testID="dial-remaining">
+          <Text style={[styles.dialSub, done && styles.dialSubDone]} testID="dial-remaining">
             {done
               ? t('targetDone', { time: dur(todaySeconds - targetSeconds) })
               : t('toGo', { time: dur(remaining) })}
@@ -151,12 +153,12 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
                   testID={`pick-${s.id}`}
                   style={({ pressed }) => [
                     styles.subjectChip,
-                    on && { borderColor: s.color, backgroundColor: colors.surface },
+                    on && { borderColor: s.color, backgroundColor: colors.surface3 },
                     pressed && { opacity: 0.7 }
                   ]}
                 >
                   <Dot color={s.color} />
-                  <Text style={[styles.subjectName, on && { color: colors.text }]}>{s.name}</Text>
+                  <Text style={[styles.subjectName, on && styles.subjectNameOn]}>{s.name}</Text>
                   {secs > 0 && <Text style={styles.subjectSecs}>{dur(secs)}</Text>}
                 </Pressable>
               );
@@ -254,7 +256,7 @@ function examLine(
   return t('examPast', { name, n: Math.abs(days) });
 }
 
-const styles = StyleSheet.create({
+const useStyles = themed((colors) => StyleSheet.create({
   content: { padding: space.lg, paddingBottom: space.xl * 2 },
   headerRow: {
     flexDirection: 'row',
@@ -273,6 +275,7 @@ const styles = StyleSheet.create({
   bigTime: { color: colors.text, fontSize: 40, fontWeight: '800', letterSpacing: -1 },
   dialCaption: { color: colors.muted, fontSize: 13, marginTop: 2 },
   dialSub: { color: colors.muted, fontSize: 13, marginTop: 10, textAlign: 'center' },
+  dialSubDone: { color: colors.good },
   examText: {
     color: colors.warn,
     fontWeight: '700',
@@ -295,6 +298,7 @@ const styles = StyleSheet.create({
     gap: 2
   },
   subjectName: { color: colors.muted, fontWeight: '700' },
+  subjectNameOn: { color: colors.text },
   subjectSecs: {
     color: colors.muted,
     fontSize: 12,
@@ -329,4 +333,4 @@ const styles = StyleSheet.create({
     padding: space.md,
     marginBottom: space.lg
   }
-});
+}));

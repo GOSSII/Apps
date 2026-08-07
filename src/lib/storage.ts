@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { ActiveTimer, AppState } from '../types';
+import type { ActiveTimer, AppState, Subject, ThemePref } from '../types';
 import { defaultPomodoro } from './presets';
+import { legacySubjectColours } from '../theme';
 
 const KEY = 'padhai-streak:v1';
 /* Unreadable data is kept, not thrown away — someone's whole study history
@@ -16,8 +17,23 @@ export const emptyState = (): AppState => ({
   active: null,
   lang: 'en',
   reminder: { enabled: false, hour: 21, minute: 0 },
-  pomodoro: defaultPomodoro()
+  pomodoro: defaultPomodoro(),
+  themePref: 'system',
+  celebratedDay: null
 });
+
+/** Subject colours were chosen when only the light ground existed. Left alone
+ *  they become dots nobody can see once the app is dark, so a known old value
+ *  is swapped for its two-ground replacement on load. Anything unrecognised is
+ *  left exactly as it is — it may well be deliberate. */
+export function migrateSubjectColours(subjects: Subject[]): Subject[] {
+  return subjects.map(s => {
+    const next = legacySubjectColours[s.color];
+    return next ? { ...s, color: next } : s;
+  });
+}
+
+const THEME_PREFS: ThemePref[] = ['system', 'light', 'dark'];
 
 /** An active timer saved by an older version lacks the round fields; without
  *  defaults the focus screen renders "Round undefined" and cannot be left. */
@@ -47,8 +63,12 @@ export async function loadState(): Promise<AppState> {
     return {
       ...base,
       ...parsed,
-      subjects: parsed.subjects ?? [],
+      subjects: migrateSubjectColours(parsed.subjects ?? []),
       sessions: parsed.sessions ?? [],
+      themePref: THEME_PREFS.includes(parsed.themePref as ThemePref)
+        ? (parsed.themePref as ThemePref)
+        : base.themePref,
+      celebratedDay: typeof parsed.celebratedDay === 'string' ? parsed.celebratedDay : null,
       /* Older saves predate these fields — merge rather than replace, so an
          upgrade never lands the user on `undefined`. */
       reminder: { ...base.reminder, ...(parsed.reminder ?? {}) },

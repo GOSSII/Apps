@@ -68,13 +68,53 @@ a real finding — the browser could not have caught it.
 
 | Do this | Expect |
 | --- | --- |
-| Cold-start the app | A dark splash with the clock mark — not a white flash |
+| Cold-start the app on a light phone | A lavender splash with the clock mark, then the app — no white flash, no jump in ground colour |
+| Cold-start it with the phone in dark mode | A near-black splash, then a dark app — the splash must not flash light first |
 | Look at the home-screen icon | The clock mark on violet, correctly masked on Android (circle/squircle per launcher) |
 | A notification arrives | The small icon is the clock silhouette, tinted violet — not a grey square |
 | Use it on a notched phone | Nothing sits under the notch or the home indicator; the tab bar clears the gesture bar |
 | Switch to हिंदी on a small (320dp) screen | No clipped or overlapping labels, especially "फ़ोकस शुरू करें" and the round presets |
 | Watch the dial while a round runs | The digits do not jitter as the seconds tick |
 | Turn on TalkBack and swipe through the dashboard | Every control is announced with a name; the chosen subject says it is selected |
+| Look at the 12-week calendar | The weekday letters line up exactly with the rows of squares, at every screen width |
+| Switch to हिंदी and look at it again | The letters are र/सो/मं/बु/गु/शु/श, and the two-character ones are not clipped |
+| Open Stats on a phone with study only from months ago | The grid says it is empty rather than showing 84 identical squares |
+
+### The target celebration
+
+The rules are unit-tested and driven in a browser. What is left for a phone is
+whether it *feels* like a moment rather than an interruption.
+
+| Do this | Expect |
+| --- | --- |
+| Study past the daily target for the first time | Confetti and "First day done" — and the streak reads 1 day |
+| Finish the round that crosses the target, while still in focus mode | The card appears over the full-screen dial, not behind it |
+| Let it sit without touching anything | It clears itself after a few seconds; the confetti has landed by then, nothing is frozen mid-air |
+| Cross the target, dismiss, then reopen the app that evening | Nothing. This is the one that matters — a celebration that replays is a popup |
+| Force-quit mid-confetti, then reopen | Still nothing: the day is banked when the card appears, not when it is dismissed |
+| Cross the target on a seventh consecutive day | "7-day streak" with its own line, not the ordinary card |
+| Turn on Reduce Motion (iOS: Accessibility → Motion; Android: Remove animations), then cross the target | The message appears with no falling pieces — not slowed-down ones |
+| Cross the target while a break is running | The break clock keeps correct time underneath; the confetti does not stall it |
+| Restore a backup taken on a day already celebrated | No celebration on the new phone |
+| Turn on TalkBack and cross the target | The card is announced when it appears |
+
+### Dark mode
+
+The palette is checked numerically by `src/__tests__/theme.test.ts`, so what is
+left for a phone is the things a contrast ratio cannot tell you.
+
+| Do this | Expect |
+| --- | --- |
+| Settings → Appearance → Dark | Everything repaints at once, including the tab bar and the status-bar glyphs (which go light) |
+| Leave it on System and flip the phone's own dark mode | The app follows, without a restart |
+| Set it to Light, then turn the phone dark | The app stays light — an explicit choice beats the system |
+| Choose Dark, force-quit, reopen | Still dark, and the splash is dark too |
+| In dark, open any sheet — Custom round, Edit sitting, Erase | The sheet is clearly in front of the page, not floating on a ground the same colour |
+| In dark, look at the subject dots and the by-subject bars | Each is clearly visible against the card, none has gone muddy |
+| In dark, look at a subject added *before* this version | Its dot is one of the current colours, not the old flat indigo |
+| In dark on OLED, run a round with the screen on for 25 minutes | No visible smearing or banding on the dial |
+| In dark, read the chart | The dashed target line is visible, and the "hit" bars are distinguishable from the "missed" ones |
+| In dark, cross the daily target | The confetti is clearly visible against the near-black ground |
 
 ## Reporting back
 
@@ -82,4 +122,5 @@ For anything that differs, the useful details are: the device and OS version,
 whether it was Expo Go or a build, and what happened instead. Most of these
 map to a single file — notifications to `src/lib/notifications.ts`,
 distraction counting to the `AppState` listener in `src/store.tsx`, backup to
-`src/lib/backupTransport.ts`.
+`src/lib/backupTransport.ts`, and the celebration to `src/lib/celebrate.ts`
+(when) plus `src/components/Celebration.tsx` (what it looks like).

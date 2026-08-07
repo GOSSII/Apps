@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { colors } from '../theme';
+import { useColors } from '../theme';
 
 /* The dial. Progress is drawn as a stroked arc rather than a bar because the
    number in the middle is what people look at — the ring is peripheral, and a
@@ -10,8 +10,8 @@ export function Ring({
   size = 260,
   stroke = 14,
   progress,
-  color = colors.accent,
-  trackColor = colors.surface2,
+  color,
+  trackColor,
   gradientTo,
   children
 }: {
@@ -19,12 +19,17 @@ export function Ring({
   stroke?: number;
   /** 0..1, clamped. */
   progress: number;
+  /* Both default to the live palette, so neither can be a default parameter —
+     that would bind whichever palette was imported first. */
   color?: string;
   trackColor?: string;
   /** Second gradient stop; falls back to a flat stroke when absent. */
   gradientTo?: string;
   children?: React.ReactNode;
 }) {
+  const colors = useColors();
+  const fill = color ?? colors.accent;
+  const track = trackColor ?? colors.surface2;
   const clamped = Math.max(0, Math.min(1, progress || 0));
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -42,15 +47,15 @@ export function Ring({
       <Svg width={size} height={size}>
         <Defs>
           <LinearGradient id="ringFill" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={color} />
-            <Stop offset="1" stopColor={gradientTo ?? color} />
+            <Stop offset="0" stopColor={fill} />
+            <Stop offset="1" stopColor={gradientTo ?? fill} />
           </LinearGradient>
         </Defs>
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={trackColor}
+          stroke={track}
           strokeWidth={stroke}
           fill="none"
         />

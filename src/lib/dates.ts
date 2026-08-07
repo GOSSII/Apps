@@ -1,3 +1,5 @@
+import type { Lang } from '../i18n';
+
 /* Everything is keyed on the user's local calendar day. A session that ends
    at 1am belongs to that 1am day — an aspirant studying past midnight has
    started a new day, and pretending otherwise makes streaks lie. */
@@ -23,11 +25,18 @@ export function daysUntil(key: string): number {
   return Math.round((target - today) / 86400000);
 }
 
-const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+/* Sunday first, matching the JS weekday index. The Hindi row is the ordinary
+   spoken short form — र for रविवार, सो for सोमवार and so on — not a
+   transliteration of the English letters, which would be no use to someone
+   reading the app in Hindi. */
+const WEEKDAYS: Record<Lang, string[]> = {
+  en: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+  hi: ['र', 'सो', 'मं', 'बु', 'गु', 'शु', 'श']
+};
 
-export function weekdayLetter(key: string): string {
+export function weekdayLetter(key: string, lang: Lang = 'en'): string {
   const [y, m, d] = key.split('-').map(Number);
-  return WEEKDAYS[new Date(y, m - 1, d).getDay()];
+  return WEEKDAYS[lang][new Date(y, m - 1, d).getDay()];
 }
 
 /** '12 Aug 2026' — day-first, the way dates are read in India. */

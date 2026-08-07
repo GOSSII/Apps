@@ -197,7 +197,31 @@ const seed = (extra = {}) => ({
 
   await page.getByTestId('tab-stats').click();
   await page.waitForTimeout(600);
-  check('calendar rendered', await page.getByText('Last 12 weeks').isVisible());
+  check('calendar rendered', await page.getByText('Last 12 weeks', { exact: true }).isVisible());
+  /* The rows are fixed weekdays; without the gutter that is true but
+     invisible, and the grid is 84 anonymous squares. */
+  const calLabels = await page.evaluate(() => {
+    const cols = [...document.querySelectorAll('div')].filter(d =>
+      d.children.length === 7 && [...d.children].every(k => {
+        const r = k.getBoundingClientRect();
+        return r.width > 4 && Math.abs(r.width - r.height) < 2;
+      }));
+    if (!cols.length) return null;
+    const grid = cols[0].parentElement;
+    return [...grid.children[0].children].map(c => c.textContent.trim());
+  });
+  check('the calendar rows are labelled with their weekday',
+    Array.isArray(calLabels) && calLabels.length === 7 && calLabels.every(Boolean),
+    JSON.stringify(calLabels));
+  check('the last row is today\'s weekday',
+    Array.isArray(calLabels)
+      && calLabels[6] === ['S','M','T','W','T','F','S'][new Date().getDay()],
+    JSON.stringify(calLabels));
+  check('the colour scale is shown, not just described',
+    (await page.getByText('Less', { exact: true }).isVisible())
+    && (await page.getByText('More', { exact: true }).isVisible()));
+  check('an occupied calendar does not claim to be empty',
+    (await page.getByTestId('calendar-nothing').isVisible().catch(() => false)) === false);
   check('phone checks totalled',
     await page.getByText('Phone checks', { exact: true }).isVisible());
   check('clean rounds counted', await page.getByText('6/8').isVisible());
@@ -232,9 +256,32 @@ const seed = (extra = {}) => ({
     await page.getByText('1 Aug 2026').first().isVisible());
   check('edited length shown', await page.getByText('1h 15m').first().isVisible());
   await page.screenshot({ path: 'shot-stats.png' });
-  await page.getByText('Last 12 weeks').scrollIntoViewIfNeeded();
+  await page.getByText('Last 12 weeks', { exact: true }).scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
   await page.screenshot({ path: 'shot-calendar.png' });
+
+  // ---------- a history entirely older than the window ----------
+  /* Someone back after a term off has sessions but an empty grid, and 84
+     identical squares under a legend about colour reads as broken. */
+  const old = new Date();
+  old.setDate(old.getDate() - 200);
+  const p3 = x => String(x).padStart(2, '0');
+  const oldDay = `${old.getFullYear()}-${p3(old.getMonth() + 1)}-${p3(old.getDate())}`;
+  await load(seed({
+    sessions: [{
+      id: 'ancient', subjectId: 's1', day: oldDay, seconds: 14400,
+      endedAt: old.getTime(), planned: true
+    }]
+  }));
+  await page.getByTestId('tab-stats').click();
+  await page.waitForTimeout(700);
+  await page.getByText('Last 12 weeks', { exact: true }).scrollIntoViewIfNeeded();
+  await page.waitForTimeout(300);
+  check('an empty 12 weeks says so rather than showing a dead grid',
+    await page.getByTestId('calendar-nothing').isVisible());
+  check('and the colour scale is dropped, since nothing is coloured',
+    (await page.getByText('Less', { exact: true }).isVisible().catch(() => false)) === false);
+  await page.screenshot({ path: 'shot-calendar-empty.png' });
 
   // ---------- Hindi covers the new screens ----------
   await page.getByTestId('tab-settings').click();

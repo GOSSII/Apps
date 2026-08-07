@@ -2,7 +2,7 @@ import React from 'react';
 import {
   KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View
 } from 'react-native';
-import { cardShadow, colors, radius, space } from '../theme';
+import { radius, space, themed } from '../theme';
 import { Button } from './ui';
 
 /* Alert.alert is unreliable on web, and this app is previewed there — so
@@ -21,6 +21,7 @@ export function Sheet({ visible, title, onClose, children }: {
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const styles = useStyles();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -28,7 +29,7 @@ export function Sheet({ visible, title, onClose, children }: {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <Pressable style={styles.backdrop} onPress={onClose}>
-          <Pressable style={[styles.sheet, cardShadow]} onPress={e => e.stopPropagation()}>
+          <Pressable style={styles.sheet} onPress={e => e.stopPropagation()}>
             <ScrollView
               /* So a tap on Save lands on Save rather than being eaten by the
                  keyboard dismissing. */
@@ -59,6 +60,7 @@ export function Confirm({
   onCancel: () => void;
   destructive?: boolean;
 }) {
+  const styles = useStyles();
   return (
     <Sheet visible={visible} title={title} onClose={onCancel}>
       {!!message && <Text style={styles.message}>{message}</Text>}
@@ -75,15 +77,16 @@ export function Confirm({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themed((colors, shadow) => StyleSheet.create({
   fill: { flex: 1 },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(22, 32, 90, 0.32)',
+    backgroundColor: colors.scrim,
     justifyContent: 'center',
     padding: space.lg
   },
   sheet: {
+    ...shadow,
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -99,4 +102,4 @@ const styles = StyleSheet.create({
   message: { color: colors.muted, marginBottom: space.lg, lineHeight: 20 },
   row: { flexDirection: 'row', gap: space.md },
   flex: { flex: 1 }
-});
+}));

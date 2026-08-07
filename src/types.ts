@@ -64,6 +64,10 @@ export type Pomodoro = {
   breakMinutes: number;
 };
 
+/** 'system' follows the phone. The other two override it, because plenty of
+ *  people keep the phone light and still want a dark app at 1am. */
+export type ThemePref = 'system' | 'light' | 'dark';
+
 export type AppState = {
   v: 1;
   subjects: Subject[];
@@ -74,4 +78,8 @@ export type AppState = {
   lang: Lang;
   reminder: Reminder;
   pomodoro: Pomodoro;
+  themePref: ThemePref;
+  /** The last day whose target-hit was celebrated, so reopening the app that
+   *  evening does not replay it. */
+  celebratedDay: string | null;
 };

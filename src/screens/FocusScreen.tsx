@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Ring } from '../components/Ring';
 import { Button } from '../components/ui';
-import { colors, radius, space } from '../theme';
+import { radius, space, themed, useColors } from '../theme';
 import {
   MAX_OPEN_SECONDS, creditedSeconds, elapsedOf, isOverCap, isRoundDone, remainingOf,
   useApp, useDuration, useT, useTicker
@@ -22,6 +22,8 @@ export default function FocusScreen() {
   } = useApp();
   const t = useT();
   const dur = useDuration();
+  const styles = useStyles();
+  const colors = useColors();
   const active = state.active;
 
   const running = !!active?.runningSince;
@@ -101,7 +103,11 @@ export default function FocusScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.head}>
-        <Text style={[styles.kicker, { color: tint }]}>
+        {/* Not the subject's tint: at 12px uppercase this is text, and a
+            colour chosen to work as a 10px dot sits at 3.5:1 on the light
+            ground — below the bar for anything you are meant to read. The
+            ring below carries the subject's colour instead. */}
+        <Text style={[styles.kicker, isBreak && styles.kickerBreak]}>
           {isBreak ? t('breakLabel') : t('round', { n: active.round })}
         </Text>
         <Text style={styles.subject}>{subject?.name ?? t('focus')}</Text>
@@ -112,7 +118,7 @@ export default function FocusScreen() {
         stroke={16}
         progress={done ? 1 : progress}
         color={tint}
-        gradientTo={isBreak ? colors.good : '#6C8BFF'}
+        gradientTo={isBreak ? colors.good : colors.accentGlow}
         trackColor={colors.surface2}
       >
         <Text style={styles.clock}>
@@ -223,7 +229,7 @@ export default function FocusScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themed((colors) => StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -233,13 +239,14 @@ const styles = StyleSheet.create({
   },
   head: { alignItems: 'center', marginBottom: space.xl },
   kicker: {
-    fontFamily: undefined,
+    color: colors.muted,
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1.4,
     textTransform: 'uppercase',
     marginBottom: 6
   },
+  kickerBreak: { color: colors.good },
   subject: { color: colors.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
   clock: {
     color: colors.text,
@@ -282,4 +289,4 @@ const styles = StyleSheet.create({
   discard: { marginTop: space.lg, padding: space.sm },
   discardText: { color: colors.muted, fontSize: 13 },
   radiusRef: { borderRadius: radius.md }
-});
+}));

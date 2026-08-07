@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { Card, Chip, Dot, Empty, ProgressBar, SectionTitle } from '../components/ui';
 import { Button } from '../components/ui';
 import { Confirm, Sheet } from '../components/Modals';
-import { colors, radius, space } from '../theme';
+import { type Colors, radius, space, themed, useColors } from '../theme';
 import { useApp, useT, useDuration, useToday } from '../store';
 import { hours } from '../lib/format';
 import { dateInputValue, parseDateInput, prettyDate, weekdayLetter } from '../lib/dates';
@@ -17,6 +17,8 @@ export default function StatsScreen() {
   const { state, editSession, deleteSession } = useApp();
   const t = useT();
   const dur = useDuration();
+  const styles = useStyles();
+  const colors = useColors();
   const { sessions, subjects, dailyTargetMinutes } = state;
   const targetSeconds = dailyTargetMinutes * 60;
 
@@ -66,6 +68,13 @@ export default function StatsScreen() {
     return weeks;
   }, [today]);
 
+  /* Sessions can all be older than the window — someone coming back after a
+     term off has a history and an empty grid. */
+  const calendarEmpty = useMemo(
+    () => calendarWeeks.every(week => week.every(day => !(totals[day] > 0))),
+    [calendarWeeks, totals]
+  );
+
   const timedRounds = sessions.filter(s => s.planned);
   const totalDistractions = sessions.reduce((sum, s) => sum + (s.distractions || 0), 0);
   const cleanRounds = timedRounds.filter(s => !s.distractions).length;
@@ -109,7 +118,7 @@ export default function StatsScreen() {
             const isToday = day === today;
             /* At 30 bars there is no room for a label under each one. */
             const label = range === 7
-              ? weekdayLetter(day)
+              ? weekdayLetter(day, state.lang)
               : isToday || i % 5 === 0 ? day.slice(-2) : '';
             return (
               <View key={day} style={styles.barCol}>
@@ -200,7 +209,7 @@ export default function StatsScreen() {
               onPress={() => setDeleting(session.id)}
               style={styles.action}
             >
-              <Text style={[styles.actionText, { color: colors.danger }]}>{t('delete')}</Text>
+              <Text style={[styles.actionText, styles.destructive]}>{t('delete')}</Text>
             </Pressable>
           </View>
         ))}
@@ -214,6 +223,17 @@ export default function StatsScreen() {
       <SectionTitle>{t('calendarTitle')}</SectionTitle>
       <Card>
         <View style={styles.calendar}>
+          {/* The rows are fixed weekdays — 84 divides by 7, so the bottom row
+              is always today's weekday and the one above it yesterday's.
+              Without these letters that is true but undiscoverable, and "I
+              always lose Sundays" is exactly what this grid is for. */}
+          <View style={styles.calLabels}>
+            {calendarWeeks[calendarWeeks.length - 1].map(day => (
+              <View key={day} style={styles.calLabelCell}>
+                <Text style={styles.calLabel}>{weekdayLetter(day, state.lang)}</Text>
+              </View>
+            ))}
+          </View>
           {calendarWeeks.map((week, wi) => (
             <View key={wi} style={styles.calWeek}>
               {week.map(day => {
@@ -224,7 +244,7 @@ export default function StatsScreen() {
                     key={day}
                     style={[
                       styles.calCell,
-                      { backgroundColor: heatColour(share) },
+                      { backgroundColor: heatColour(share, colors) },
                       day === today && styles.calToday
                     ]}
                   />
@@ -233,7 +253,27 @@ export default function StatsScreen() {
             </View>
           ))}
         </View>
-        <Text style={styles.legend}>{t('calendarLegend')}</Text>
+
+        {/* An empty grid is indistinguishable from a broken one, so when there
+            is genuinely nothing in the window it says so rather than leaving
+            84 identical squares under a legend about colour. */}
+        {calendarEmpty ? (
+          <Text style={styles.legend} testID="calendar-nothing">{t('calendarNothing')}</Text>
+        ) : (
+          <>
+            <View style={styles.scaleRow}>
+              <Text style={styles.legend}>{t('calendarLess')}</Text>
+              {[0, 0.2, 0.5, 0.9, 1].map(share => (
+                <View
+                  key={share}
+                  style={[styles.scaleCell, { backgroundColor: heatColour(share, colors) }]}
+                />
+              ))}
+              <Text style={styles.legend}>{t('calendarMore')}</Text>
+            </View>
+            <Text style={styles.legend}>{t('calendarLegend')}</Text>
+          </>
+        )}
       </Card>
 
       <Card>
@@ -337,15 +377,16 @@ export default function StatsScreen() {
 }
 
 /** Four steps, not a continuous ramp: the eye reads bands, not gradients. */
-function heatColour(share: number): string {
+function heatColour(share: number, colors: Colors): string {
   if (share <= 0) return colors.surface2;
-  if (share < 0.34) return 'rgba(53, 82, 204, 0.22)';
-  if (share < 0.67) return 'rgba(53, 82, 204, 0.55)';
+  if (share < 0.34) return colors.heatLow;
+  if (share < 0.67) return colors.heatMid;
   if (share < 1) return colors.accent;
   return colors.good;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.stat}>
       <Text style={styles.statValue}>{value}</Text>
@@ -354,7 +395,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themed((colors) => StyleSheet.create({
   content: { padding: space.lg, paddingBottom: space.xl * 2 },
   h1: { color: colors.text, fontSize: 28, fontWeight: '800', marginBottom: space.md },
   statRow: { flexDirection: 'row' },
@@ -374,7 +415,9 @@ const styles = StyleSheet.create({
     height: 1,
     borderTopWidth: 1,
     borderStyle: 'dashed',
-    borderColor: colors.line,
+    /* The legend points at this line, so it has to be visible: colors.line is
+       a 1.3:1 hairline on a card and simply is not there on either ground. */
+    borderColor: colors.muted,
     marginBottom: 20
   },
   barCol: { flex: 1, alignItems: 'center' },
@@ -386,8 +429,15 @@ const styles = StyleSheet.create({
   legend: { color: colors.muted, fontSize: 12, marginTop: space.sm },
   chipRow: { flexDirection: 'row', marginBottom: space.xs },
   calendar: { flexDirection: 'row', justifyContent: 'space-between', gap: 4 },
+  /* No fixed height: the column stretches to the grid beside it, and seven
+     flexed cells then land exactly on the seven rows of squares. */
+  calLabels: { gap: 4, marginRight: 2 },
+  calLabelCell: { flex: 1, justifyContent: 'center', minWidth: 12 },
+  calLabel: { color: colors.muted, fontSize: 9, textAlign: 'center' },
   calWeek: { flex: 1, gap: 4 },
   calCell: { width: '100%', aspectRatio: 1, borderRadius: 3 },
+  scaleRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: space.md },
+  scaleCell: { width: 12, height: 12, borderRadius: 3 },
   calToday: { borderWidth: 1, borderColor: colors.text },
   subjectBlock: { marginTop: space.lg },
   subjectHead: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm },
@@ -412,6 +462,7 @@ const styles = StyleSheet.create({
   },
   action: { paddingHorizontal: space.xs, paddingVertical: space.sm, minHeight: 44, justifyContent: 'center' },
   actionText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  destructive: { color: colors.danger },
   showAll: { padding: space.md, alignItems: 'center' },
   showAllText: { color: colors.accentText, fontWeight: '700', fontSize: 13 },
   label: { color: colors.muted, marginBottom: space.sm, fontSize: 13 },
@@ -428,4 +479,4 @@ const styles = StyleSheet.create({
   sheetRow: { flexDirection: 'row', gap: space.md },
   chipWrapSheet: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.md },
   error: { color: colors.danger, fontSize: 13, marginBottom: space.sm }
-});
+}));

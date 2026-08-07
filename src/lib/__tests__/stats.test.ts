@@ -1,4 +1,4 @@
-import { addDays, dayKey, daysUntil, parseDateInput } from '../dates';
+import { addDays, dayKey, daysUntil, parseDateInput, weekdayLetter } from '../dates';
 import { bestStreak, currentStreak, dayTotals, recentDays } from '../stats';
 import { clockDuration, humanDuration } from '../format';
 import type { Session } from '../../types';
@@ -151,5 +151,44 @@ describe('formatting', () => {
     expect(clockDuration(0)).toBe('00:00:00');
     expect(clockDuration(5)).toBe('00:00:05');
     expect(clockDuration(3725)).toBe('01:02:05');
+  });
+});
+
+describe('weekdayLetter', () => {
+  it('names the day in English', () => {
+    // 2026-08-09 is a Sunday.
+    expect(weekdayLetter('2026-08-09')).toBe('S');
+    expect(weekdayLetter('2026-08-10')).toBe('M');
+    expect(weekdayLetter('2026-08-14')).toBe('F');
+  });
+
+  it('names it in Hindi too, in the spoken short form', () => {
+    /* Not a transliteration of the English letters — "S, M, T" is no use to
+       someone reading the app in Hindi, which a large share of this audience
+       does. */
+    expect(weekdayLetter('2026-08-09', 'hi')).toBe('र');
+    expect(weekdayLetter('2026-08-10', 'hi')).toBe('सो');
+    expect(weekdayLetter('2026-08-14', 'hi')).toBe('शु');
+  });
+
+  it('has a letter for all seven days in both languages', () => {
+    for (let d = 9; d <= 15; d++) {
+      const key = `2026-08-${String(d).padStart(2, '0')}`;
+      expect(weekdayLetter(key, 'en')).toBeTruthy();
+      expect(weekdayLetter(key, 'hi')).toBeTruthy();
+    }
+  });
+
+  it('lines the calendar rows up with fixed weekdays', () => {
+    /* The grid is 84 days ending today, chunked into 12 columns of 7. Because
+       84 divides by 7, row N is always the same weekday — which is the whole
+       reason the row labels can exist at all. */
+    const days = recentDays(84);
+    const weeks: string[][] = [];
+    for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+    for (let row = 0; row < 7; row++) {
+      const letters = new Set(weeks.map(w => weekdayLetter(w[row], 'hi')));
+      expect(letters.size).toBe(1);
+    }
   });
 });

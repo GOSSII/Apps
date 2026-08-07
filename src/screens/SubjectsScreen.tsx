@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip, Dot, Empty, SectionTitle } from '../components/ui';
 import { Confirm, Sheet } from '../components/Modals';
-import { colors, radius, space } from '../theme';
+import { radius, space, themed, useColors } from '../theme';
 import { useApp, useT, useDuration } from '../store';
 import { totalsBySubject } from '../lib/stats';
 
@@ -19,6 +19,8 @@ export default function SubjectsScreen() {
   const { state, addSubject, renameSubject, deleteSubject } = useApp();
   const t = useT();
   const dur = useDuration();
+  const styles = useStyles();
+  const colors = useColors();
   const { subjects, sessions } = state;
 
   const [name, setName] = useState('');
@@ -97,7 +99,7 @@ export default function SubjectsScreen() {
                 onPress={() => setDeleting(subject.id)}
                 style={styles.action}
               >
-                <Text style={[styles.actionText, { color: colors.danger }]}>{t('delete')}</Text>
+                <Text style={[styles.actionText, styles.destructive]}>{t('delete')}</Text>
               </Pressable>
             </View>
           ))}
@@ -154,7 +156,7 @@ export default function SubjectsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themed((colors) => StyleSheet.create({
   content: { padding: space.lg, paddingBottom: space.xl * 2 },
   h1: { color: colors.text, fontSize: 28, fontWeight: '800', marginBottom: space.md },
   addRow: { flexDirection: 'row', gap: space.sm, alignItems: 'center' },
@@ -185,5 +187,6 @@ const styles = StyleSheet.create({
   meta: { color: colors.muted, fontSize: 12, marginTop: 2 },
   action: { paddingHorizontal: space.sm, paddingVertical: space.sm, minHeight: 44, justifyContent: 'center' },
   actionText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  destructive: { color: colors.danger },
   sheetRow: { flexDirection: 'row', gap: space.md }
-});
+}));
