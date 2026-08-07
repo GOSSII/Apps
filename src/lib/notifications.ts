@@ -6,7 +6,10 @@ import { Platform } from 'react-native';
 
 export type ReminderResult = 'ok' | 'denied' | 'unsupported';
 
-const CHANNEL_ID = 'daily-reminder';
+/* Two channels, not one: a user who silences the nightly nudge should not
+   also lose the alarm that ends their round. */
+const REMINDER_CHANNEL = 'daily-reminder';
+const ROUND_CHANNEL = 'round-end';
 
 /* Fixed identifiers so each notification can be cancelled on its own. The
    round-end alarm and the daily nudge must never cancel each other. */
@@ -29,12 +32,36 @@ async function ensurePermission(Notifications: any): Promise<boolean> {
   return (await Notifications.requestPermissionsAsync()).granted;
 }
 
-async function ensureChannel(Notifications: any): Promise<void> {
+async function ensureChannel(Notifications: any, id: string, name: string): Promise<void> {
   if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-    name: 'Padhai Streak',
+  await Notifications.setNotificationChannelAsync(id, {
+    name,
     importance: Notifications.AndroidImportance.DEFAULT
   });
+}
+
+/* Without a handler, a notification that arrives while the app is open is
+   delivered to nothing — which is precisely the round-end alarm's situation
+   when the user is looking at another screen of this app. Installed once,
+   lazily, so the browser never touches the module. */
+let handlerInstalled = false;
+export async function installNotificationHandler(): Promise<void> {
+  if (handlerInstalled) return;
+  const Notifications = await load();
+  if (!Notifications) return;
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false
+      })
+    });
+    handlerInstalled = true;
+  } catch {
+    /* Nothing else depends on this. */
+  }
 }
 
 export async function scheduleDailyReminder(
@@ -48,7 +75,7 @@ export async function scheduleDailyReminder(
 
   try {
     if (!(await ensurePermission(Notifications))) return 'denied';
-    await ensureChannel(Notifications);
+    await ensureChannel(Notifications, REMINDER_CHANNEL, 'Daily reminder');
 
     // Replace rather than stack, so changing the hour leaves nothing behind.
     await Notifications.cancelScheduledNotificationAsync(DAILY_ID).catch(() => {});
@@ -59,7 +86,7 @@ export async function scheduleDailyReminder(
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour,
         minute,
-        channelId: CHANNEL_ID
+        channelId: REMINDER_CHANNEL
       }
     });
     return 'ok';
@@ -90,10 +117,12 @@ export async function scheduleRoundEnd(
   if (!Notifications) return;
 
   try {
-    // No permission prompt here: interrupting a round to ask would be rude,
-    // and the round works fine without the alarm.
-    if (!(await Notifications.getPermissionsAsync()).granted) return;
-    await ensureChannel(Notifications);
+    /* Asking here is asking at the start of a round, not during one — and
+       without it the alarm would never fire for anyone who has not also
+       turned on the daily reminder, which is most people. A refusal is
+       accepted quietly: the round itself does not need the alarm. */
+    if (!(await ensurePermission(Notifications))) return;
+    await ensureChannel(Notifications, ROUND_CHANNEL, 'Round finished');
     await Notifications.cancelScheduledNotificationAsync(ROUND_ID).catch(() => {});
     await Notifications.scheduleNotificationAsync({
       identifier: ROUND_ID,
@@ -102,7 +131,7 @@ export async function scheduleRoundEnd(
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
         seconds: Math.max(1, Math.round(seconds)),
         repeats: false,
-        channelId: CHANNEL_ID
+        channelId: ROUND_CHANNEL
       }
     });
   } catch {

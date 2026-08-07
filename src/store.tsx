@@ -22,13 +22,26 @@ export function elapsedOf(active: ActiveTimer | null, now = Date.now()): number 
   return Math.floor(active.bankedSeconds + live);
 }
 
-/** What a fixed round should credit. A round you asked to be 25 minutes
- *  credits 25 minutes, even if the phone sat on the timer for an hour. */
+/* An open-ended sitting has no end, and a phone left on the desk overnight
+   would otherwise credit eight hours of "study". Six hours is longer than any
+   honest single sitting and short enough that a forgotten timer cannot invent
+   a day's target on its own. */
+export const MAX_OPEN_SECONDS = 6 * 3600;
+
+/** The most a sitting can credit: its own length, or the open-ended cap. */
+export const creditLimitOf = (active: ActiveTimer): number =>
+  active.plannedSeconds ?? MAX_OPEN_SECONDS;
+
+/** What a sitting should credit. A round you asked to be 25 minutes credits
+ *  25 minutes, even if the phone sat on the timer for an hour. */
 export function creditedSeconds(active: ActiveTimer | null, now = Date.now()): number {
-  const elapsed = elapsedOf(active, now);
-  if (!active?.plannedSeconds) return elapsed;
-  return Math.min(elapsed, active.plannedSeconds);
+  if (!active) return 0;
+  return Math.min(elapsedOf(active, now), creditLimitOf(active));
 }
+
+/** True once a sitting has run past what it can credit. */
+export const isOverCap = (active: ActiveTimer | null, now = Date.now()): boolean =>
+  !!active && !active.plannedSeconds && elapsedOf(active, now) > MAX_OPEN_SECONDS;
 
 export function remainingOf(active: ActiveTimer | null, now = Date.now()): number | null {
   if (!active?.plannedSeconds) return null;
@@ -45,9 +58,10 @@ export const isRoundDone = (active: ActiveTimer | null, now = Date.now()): boole
 export function stopInstant(active: ActiveTimer | null, now = Date.now()): number {
   if (!active) return now;
   if (active.runningSince === null) return active.pausedAt ?? now;
-  const wouldEnd = active.plannedSeconds
-    ? active.runningSince + (active.plannedSeconds - active.bankedSeconds) * 1000
-    : Infinity;
+  /* The cap dates the sitting too: a timer left running overnight stopped
+     counting six hours in, so that is when it stopped. */
+  const wouldEnd =
+    active.runningSince + (creditLimitOf(active) - active.bankedSeconds) * 1000;
   return Math.min(now, wouldEnd);
 }
 

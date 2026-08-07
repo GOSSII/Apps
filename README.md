@@ -105,6 +105,12 @@ Five decisions worth knowing:
   `runningSince` plus banked seconds, so time spent with the app swiped away —
   or the phone face-down for two hours — is still counted. A `setInterval` only
   drives the display, and only while the clock is visibly running.
+- **An open-ended sitting stops crediting after six hours.** A phone left on
+  the desk overnight would otherwise invent a day's target out of nothing. The
+  cap dates the sitting too: it stopped counting six hours in, so that is when
+  it stopped.
+- **The round-end notification does not claim the round is saved.** Nothing is
+  banked until you come back and choose, so it says "open the app to save it".
 - **A backup never carries a running timer.** Restoring someone into a
   half-finished round on another phone, hours later, would credit time nobody
   studied. The active timer is dropped on export and again on import.
@@ -138,7 +144,7 @@ Five decisions worth knowing:
 ## Testing
 
 ```sh
-npm test          # 66 unit tests (jest-expo)
+npm test          # 71 unit tests (jest-expo)
 npm run typecheck # tsc --noEmit
 ```
 
@@ -180,6 +186,14 @@ with no account:
   counts how often you leave instead.
 - **Live study rooms and leaderboards** — these need a server and an account.
 - **Lofi radio** — licensed audio, and streaming would break the offline promise.
+
+## Running it on a phone
+
+Nothing here has been verified on hardware yet — everything so far went through
+`react-native-web` in a headless browser, which has no notifications, never
+truly backgrounds, and has no share sheet. `docs/DEVICE-TESTING.md` is the
+checklist for the first real run, and `eas.json` has a `preview` profile that
+builds an installable APK.
 
 ## Not built yet
 
