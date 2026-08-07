@@ -95,7 +95,7 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
           stroke={16}
           progress={todaySeconds / targetSeconds}
           color={done ? colors.good : colors.accent}
-          gradientTo={done ? colors.good : '#b49bff'}
+          gradientTo={done ? colors.good : '#6C8BFF'}
         >
           <Text style={styles.bigTime} testID="dial-total">{dur(todaySeconds)}</Text>
           <Text style={styles.dialCaption}>

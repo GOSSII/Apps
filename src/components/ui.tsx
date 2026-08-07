@@ -2,13 +2,13 @@ import React from 'react';
 import {
   Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle
 } from 'react-native';
-import { colors, radius, space } from '../theme';
+import { cardShadow, colors, radius, space } from '../theme';
 
 export function Card({ children, style }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
-  return <View style={[styles.card, style]}>{children}</View>;
+  return <View style={[styles.card, cardShadow, style]}>{children}</View>;
 }
 
 export function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -122,6 +122,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
+    /* Chips and rows inside inherit the ground, so the card must be opaque. */
     padding: space.lg,
     marginBottom: space.md
   },
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
   },
   btnSm: { minHeight: 44, paddingHorizontal: space.md, borderRadius: radius.sm },
   btnPrimary: { backgroundColor: colors.accent, borderColor: colors.accent },
-  btnGhost: { backgroundColor: 'transparent' },
+  btnGhost: { backgroundColor: colors.surface, borderColor: colors.line },
   btnDanger: { backgroundColor: 'transparent', borderColor: colors.danger },
   btnDim: { opacity: 0.6 },
   btnLabel: { color: '#fff', fontSize: 16, fontWeight: '700' },
@@ -161,7 +162,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surface2,
+    backgroundColor: colors.surface,
     marginRight: space.sm,
     marginBottom: space.sm
   },

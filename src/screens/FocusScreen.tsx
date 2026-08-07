@@ -5,11 +5,12 @@ import { Ring } from '../components/Ring';
 import { Button } from '../components/ui';
 import { colors, radius, space } from '../theme';
 import {
-  creditedSeconds, elapsedOf, isRoundDone, remainingOf, useApp, useDuration, useT, useTicker
+  MAX_OPEN_SECONDS, creditedSeconds, elapsedOf, isOverCap, isRoundDone, remainingOf,
+  useApp, useDuration, useT, useTicker
 } from '../store';
 import { clockDuration } from '../lib/format';
 import { breakSecondsOf } from '../lib/presets';
-import { cancelRoundEnd, scheduleRoundEnd } from '../lib/notifications';
+import { cancelRoundEnd, installNotificationHandler, scheduleRoundEnd } from '../lib/notifications';
 
 const KEEP_AWAKE_TAG = 'padhai-focus';
 
@@ -40,6 +41,8 @@ export default function FocusScreen() {
   const kind = active?.kind;
   const subjectName = state.subjects.find(s => s.id === active?.subjectId)?.name ?? '';
 
+  useEffect(() => { void installNotificationHandler(); }, []);
+
   useEffect(() => {
     if (!runningSince || !plannedSeconds) {
       void cancelRoundEnd();
@@ -50,7 +53,9 @@ export default function FocusScreen() {
     void scheduleRoundEnd(
       remainingOf(active) ?? 0,
       kind === 'break' ? t('breakOver') : t('roundComplete'),
-      kind === 'break' ? t('backToStudy') : t('roundSaved', { time: dur(plannedSeconds), subject: subjectName })
+      /* Not t('roundSaved'): at the moment this fires nothing is saved, and
+         the whole app rests on its numbers being true. */
+      kind === 'break' ? t('backToStudy') : t('roundEndBody')
     );
     return () => { void cancelRoundEnd(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -107,7 +112,7 @@ export default function FocusScreen() {
         stroke={16}
         progress={done ? 1 : progress}
         color={tint}
-        gradientTo={isBreak ? colors.good : colors.accent}
+        gradientTo={isBreak ? colors.good : '#6C8BFF'}
         trackColor={colors.surface2}
       >
         <Text style={styles.clock}>
@@ -123,6 +128,12 @@ export default function FocusScreen() {
       </Ring>
 
       {!isBreak && <Text style={styles.distractions}>{distractionLine}</Text>}
+
+      {isOverCap(active) && (
+        <Text style={styles.capped}>
+          {t('openCapped', { time: dur(MAX_OPEN_SECONDS) })}
+        </Text>
+      )}
 
       <View style={styles.controls}>
         {done ? (
@@ -241,6 +252,12 @@ const styles = StyleSheet.create({
     color: colors.muted,
     fontSize: 13,
     marginTop: 6,
+    textAlign: 'center'
+  },
+  capped: {
+    color: colors.warn,
+    fontSize: 13,
+    marginTop: space.sm,
     textAlign: 'center'
   },
   distractions: {

@@ -16,8 +16,8 @@ const MIN_TARGET = 44;
 const seed = {
   v: 1,
   subjects: [
-    { id: 's1', name: 'Physics', color: '#7c5cff' },
-    { id: 's2', name: 'Chemistry', color: '#22c55e' }
+    { id: 's1', name: 'Physics', color: '#3552CC' },
+    { id: 's2', name: 'Chemistry', color: '#12897E' }
   ],
   sessions: [
     { id: 'x', subjectId: 's1', day: '2026-08-06', seconds: 5400, endedAt: 2, planned: true },

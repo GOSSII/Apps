@@ -89,7 +89,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AppProvider>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <Root />
       </AppProvider>
     </SafeAreaProvider>
@@ -110,6 +110,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.line,
     backgroundColor: colors.surface,
+    /* The bar is the one surface that must read as attached, not floating. */
     paddingTop: space.sm,
     paddingBottom: Platform.OS === 'web' ? space.sm : space.xs
   },

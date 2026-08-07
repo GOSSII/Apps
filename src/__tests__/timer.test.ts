@@ -1,4 +1,6 @@
-import { creditedSeconds, elapsedOf, isRoundDone, remainingOf, stopInstant } from '../store';
+import {
+  MAX_OPEN_SECONDS, creditedSeconds, elapsedOf, isOverCap, isRoundDone, remainingOf, stopInstant
+} from '../store';
 import type { ActiveTimer } from '../types';
 
 const NOW = 1_800_000_000_000;
@@ -41,8 +43,14 @@ describe('elapsedOf', () => {
 });
 
 describe('creditedSeconds', () => {
-  it('credits everything on an open-ended sitting', () => {
+  it('credits everything on an open-ended sitting, up to the cap', () => {
     expect(creditedSeconds(timer(), NOW + 3_600_000)).toBe(3600);
+  });
+
+  it('caps an open sitting that was left running overnight', () => {
+    // A phone forgotten on the desk would otherwise credit eight hours of
+    // study nobody did, and hand the user a target they never earned.
+    expect(creditedSeconds(timer(), NOW + 9 * 3_600_000)).toBe(MAX_OPEN_SECONDS);
   });
 
   it('caps a fixed round at the length that was asked for', () => {
@@ -110,5 +118,25 @@ describe('stopInstant', () => {
   it('never reports a stop time in the future for a running round', () => {
     const round = timer({ plannedSeconds: 1500 });
     expect(stopInstant(round, NOW + 60_000)).toBe(NOW + 60_000);
+  });
+});
+
+describe('the open-ended cap', () => {
+  it('does not trigger for an ordinary long sitting', () => {
+    expect(isOverCap(timer(), NOW + 3 * 3_600_000)).toBe(false);
+  });
+
+  it('reports once a sitting has run past what it can credit', () => {
+    expect(isOverCap(timer(), NOW + 7 * 3_600_000)).toBe(true);
+  });
+
+  it('never applies to a fixed round, which has its own limit', () => {
+    expect(isOverCap(timer({ plannedSeconds: 1500 }), NOW + 9 * 3_600_000)).toBe(false);
+  });
+
+  it('dates a capped sitting to when it stopped counting', () => {
+    // Left running at 22:00 and found the next morning: the sitting ended six
+    // hours in, at 04:00 — not whenever the app was next opened.
+    expect(stopInstant(timer(), NOW + 20 * 3_600_000)).toBe(NOW + MAX_OPEN_SECONDS * 1000);
   });
 });

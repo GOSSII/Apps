@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip, SectionTitle } from '../components/ui';
-import { Confirm } from '../components/Modals';
+
 import { colors, radius, space } from '../theme';
 import { useApp, useT, useDuration } from '../store';
 import { LANGUAGES, type Key, type Lang } from '../i18n';
@@ -11,6 +11,9 @@ import { dateInputValue, daysUntil, parseDateInput, prettyDate } from '../lib/da
 import {
   cancelDailyReminder, formatTime, parseTimeInput, scheduleDailyReminder
 } from '../lib/notifications';
+import { backupFilename, parseBackup, serialiseBackup } from '../lib/backup';
+import { canPickFiles, pickBackup, saveBackup } from '../lib/backupTransport';
+import { Confirm, Sheet } from '../components/Modals';
 
 const PRESET_LABEL: Record<PresetKey, Key> = {
   open: 'presetOpen',
@@ -22,7 +25,7 @@ const PRESET_LABEL: Record<PresetKey, Key> = {
 
 export default function SettingsScreen() {
   const {
-    state, setDailyTarget, setExam, setLang, setReminder, setPomodoro, resetAll
+    state, setDailyTarget, setExam, setLang, setReminder, setPomodoro, replaceAll, resetAll
   } = useApp();
   const t = useT();
   const dur = useDuration();
@@ -34,6 +37,55 @@ export default function SettingsScreen() {
   const [timeText, setTimeText] = useState(formatTime(reminder.hour, reminder.minute));
   const [reminderError, setReminderError] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [backupNote, setBackupNote] = useState<string | null>(null);
+  const [restoreOpen, setRestoreOpen] = useState(false);
+  const [pasted, setPasted] = useState('');
+  const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ text: string; sessions: number } | null>(null);
+
+  const saveNow = async () => {
+    const result = await saveBackup(backupFilename(), serialiseBackup(state));
+    setBackupNote(
+      result === 'shared' ? t('backupShared')
+        : result === 'downloaded' ? t('backupDownloaded')
+        : t('backupFailed')
+    );
+  };
+
+  /* Parsing happens before the confirmation, so the user is told how much is
+     in the file before being asked to overwrite what they have. */
+  const examine = (text: string) => {
+    const result = parseBackup(text);
+    if (!result.ok) {
+      setPending(null);
+      setRestoreError(
+        result.reason === 'unreadable' ? t('restoreUnreadable')
+          : result.reason === 'too-new' ? t('restoreTooNew')
+          : t('restoreNotBackup')
+      );
+      return;
+    }
+    setRestoreError(null);
+    setPending({ text, sessions: result.sessions });
+  };
+
+  const chooseFile = async () => {
+    const text = await pickBackup();
+    if (text === null) return;
+    setPasted(text);
+    examine(text);
+  };
+
+  const doRestore = () => {
+    if (!pending) return;
+    const result = parseBackup(pending.text);
+    if (!result.ok) return;
+    replaceAll(result.state);
+    setPending(null);
+    setRestoreOpen(false);
+    setPasted('');
+    setBackupNote(t('restored', { n: result.sessions }));
+  };
 
   const saveExam = () => {
     const name = examName.trim();
@@ -234,6 +286,24 @@ export default function SettingsScreen() {
         </View>
       </Card>
 
+      <SectionTitle>{t('backupTitle')}</SectionTitle>
+      <Card>
+        <Text style={styles.hint}>{t('backupHint')}</Text>
+        {!!backupNote && <Text style={styles.note}>{backupNote}</Text>}
+        <View style={styles.row}>
+          <Button label={t('backupSave')} onPress={saveNow} style={styles.flex} testID="backup-save" />
+        </View>
+        <View style={styles.row}>
+          <Button
+            label={t('backupRestore')}
+            variant="ghost"
+            onPress={() => { setRestoreOpen(true); setRestoreError(null); }}
+            style={styles.flex}
+            testID="backup-restore"
+          />
+        </View>
+      </Card>
+
       <SectionTitle>{t('data')}</SectionTitle>
       <Card>
         <Text style={styles.hint}>{t('privacy')}</Text>
@@ -246,6 +316,52 @@ export default function SettingsScreen() {
       </Card>
 
       <Text style={styles.footer}>Padhai Streak · v1.0</Text>
+
+      <Sheet
+        visible={restoreOpen}
+        title={t('restoreTitle')}
+        onClose={() => { setRestoreOpen(false); setPending(null); setRestoreError(null); }}
+      >
+        {canPickFiles() && (
+          <Button
+            label={t('restorePick')}
+            onPress={chooseFile}
+            style={{ marginBottom: space.md }}
+            testID="restore-pick"
+          />
+        )}
+        <Text style={styles.label}>{t('restorePasteLabel')}</Text>
+        <TextInput
+          value={pasted}
+          onChangeText={text => { setPasted(text); if (text.trim()) examine(text); }}
+          placeholder={t('restorePastePlaceholder')}
+          placeholderTextColor={colors.muted}
+          multiline
+          style={[styles.input, styles.paste]}
+          testID="restore-paste"
+        />
+        {!!restoreError && <Text style={styles.error}>{restoreError}</Text>}
+        {!!pending && (
+          <Text style={styles.note}>
+            {t('restoreConfirmBody', { n: pending.sessions })}
+          </Text>
+        )}
+        <View style={styles.row}>
+          <Button
+            label={t('cancel')}
+            variant="ghost"
+            onPress={() => { setRestoreOpen(false); setPending(null); }}
+            style={styles.flex}
+          />
+          <Button
+            label={t('restoreDo')}
+            onPress={doRestore}
+            disabled={!pending}
+            style={styles.flex}
+            testID="restore-do"
+          />
+        </View>
+      </Sheet>
 
       <Confirm
         visible={confirmReset}
@@ -289,5 +405,8 @@ const styles = StyleSheet.create({
     marginBottom: space.sm
   },
   error: { color: colors.danger, fontSize: 13, marginBottom: space.sm },
+  note: { color: colors.good, fontSize: 13, marginTop: space.sm },
+  label: { color: colors.muted, fontSize: 13, marginBottom: space.sm },
+  paste: { minHeight: 96, textAlignVertical: 'top' },
   footer: { color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: space.lg }
 });
