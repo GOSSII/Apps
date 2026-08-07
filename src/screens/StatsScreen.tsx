@@ -6,7 +6,7 @@ import { Confirm, Sheet } from '../components/Modals';
 import { colors, radius, space } from '../theme';
 import { useApp, useT, useDuration } from '../store';
 import { hours } from '../lib/format';
-import { dayKey, prettyDate, weekdayLetter } from '../lib/dates';
+import { dayKey, parseDateInput, prettyDate, weekdayLetter } from '../lib/dates';
 import { bestStreak, dayTotals, recentDays, totalsBySubject } from '../lib/stats';
 import { addDays } from '../lib/dates';
 
@@ -23,7 +23,10 @@ export default function StatsScreen() {
   const [range, setRange] = useState<7 | 30>(7);
   const [scope, setScope] = useState<'week' | 'all'>('week');
   const [showAll, setShowAll] = useState(false);
-  const [editing, setEditing] = useState<{ id: string; minutes: string } | null>(null);
+  const [editing, setEditing] = useState<
+    { id: string; minutes: string; date: string; subjectId: string } | null
+  >(null);
+  const [editError, setEditError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const totals = useMemo(() => dayTotals(sessions), [sessions]);
@@ -175,10 +178,15 @@ export default function StatsScreen() {
             </View>
             <Text style={styles.sittingTime}>{dur(session.seconds)}</Text>
             <Pressable
-              onPress={() => setEditing({
-                id: session.id,
-                minutes: String(Math.round(session.seconds / 60))
-              })}
+              onPress={() => {
+                setEditError(null);
+                setEditing({
+                  id: session.id,
+                  minutes: String(Math.round(session.seconds / 60)),
+                  date: prettyDate(session.day),
+                  subjectId: session.subjectId
+                });
+              }}
               style={styles.action}
             >
               <Text style={styles.actionText}>{t('edit')}</Text>
@@ -248,13 +256,49 @@ export default function StatsScreen() {
           style={styles.input}
           placeholderTextColor={colors.muted}
         />
+
+        <Text style={styles.label}>{t('sittingDate')}</Text>
+        <TextInput
+          value={editing?.date ?? ''}
+          onChangeText={text => setEditing(e => (e ? { ...e, date: text } : e))}
+          testID="edit-date"
+          style={styles.input}
+          placeholderTextColor={colors.muted}
+        />
+
+        <Text style={styles.label}>{t('subject')}</Text>
+        <View style={styles.chipWrapSheet}>
+          {subjects.map(sub => (
+            <Chip
+              key={sub.id}
+              label={sub.name}
+              selected={editing?.subjectId === sub.id}
+              onPress={() => setEditing(e => (e ? { ...e, subjectId: sub.id } : e))}
+              testID={`edit-subject-${sub.id}`}
+            />
+          ))}
+        </View>
+
+        {!!editError && <Text style={styles.error}>{editError}</Text>}
+
         <View style={styles.sheetRow}>
           <Button label={t('cancel')} variant="ghost" onPress={() => setEditing(null)} style={styles.flex} />
           <Button
             label={t('save')}
             testID="edit-save"
             onPress={() => {
-              if (editing) editSession(editing.id, Number(editing.minutes.replace(/[^\d.]/g, '')));
+              if (!editing) return;
+              const day = parseDateInput(editing.date);
+              if (!day) { setEditError(t('examBadDate')); return; }
+              /* A sitting in the future would sit at the far end of every
+                 chart and quietly inflate a streak that has not happened. */
+              if (day > dayKey()) { setEditError(t('dateInFuture')); return; }
+              editSession(editing.id, {
+                minutes: Number(editing.minutes.replace(/[^\d.]/g, '')),
+                day,
+                subjectId: editing.subjectId
+              });
+              setEditError(null);
               setEditing(null);
             }}
             style={styles.flex}
@@ -372,5 +416,7 @@ const styles = StyleSheet.create({
     padding: space.md,
     marginBottom: space.lg
   },
-  sheetRow: { flexDirection: 'row', gap: space.md }
+  sheetRow: { flexDirection: 'row', gap: space.md },
+  chipWrapSheet: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.md },
+  error: { color: colors.danger, fontSize: 13, marginBottom: space.sm }
 });

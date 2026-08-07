@@ -51,7 +51,7 @@ type Actions = {
   stopTimer(): number;
   discardTimer(): void;
   logManual(subjectId: string, minutes: number): void;
-  editSession(id: string, minutes: number): void;
+  editSession(id: string, patch: { minutes?: number; day?: string; subjectId?: string }): void;
   deleteSession(id: string): void;
   setDailyTarget(minutes: number): void;
   setExam(exam: Exam | null): void;
@@ -231,15 +231,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const editSession = useCallback((id: string, minutes: number) => {
-    if (!(minutes > 0)) return;
-    setState(s => ({
-      ...s,
-      sessions: s.sessions.map(x =>
-        x.id === id ? { ...x, seconds: Math.round(minutes * 60) } : x
-      )
-    }));
-  }, []);
+  const editSession = useCallback(
+    (id: string, patch: { minutes?: number; day?: string; subjectId?: string }) => {
+      setState(s => ({
+        ...s,
+        sessions: s.sessions.map(x => {
+          if (x.id !== id) return x;
+          const next = { ...x };
+          if (patch.minutes !== undefined && patch.minutes > 0) {
+            next.seconds = Math.round(patch.minutes * 60);
+          }
+          if (patch.day) next.day = patch.day;
+          /* Moving a sitting to a subject that no longer exists would orphan
+             it, so an unknown id is ignored rather than written. */
+          if (patch.subjectId && s.subjects.some(sub => sub.id === patch.subjectId)) {
+            next.subjectId = patch.subjectId;
+          }
+          return next;
+        })
+      }));
+    },
+    []
+  );
 
   const deleteSession = useCallback((id: string) => {
     setState(s => ({ ...s, sessions: s.sessions.filter(x => x.id !== id) }));

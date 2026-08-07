@@ -8,6 +8,11 @@ export type ReminderResult = 'ok' | 'denied' | 'unsupported';
 
 const CHANNEL_ID = 'daily-reminder';
 
+/* Fixed identifiers so each notification can be cancelled on its own. The
+   round-end alarm and the daily nudge must never cancel each other. */
+const DAILY_ID = 'padhai-daily-reminder';
+const ROUND_ID = 'padhai-round-end';
+
 async function load() {
   if (Platform.OS === 'web') return null;
   try {
@@ -15,6 +20,21 @@ async function load() {
   } catch {
     return null;
   }
+}
+
+async function ensurePermission(Notifications: any): Promise<boolean> {
+  const existing = await Notifications.getPermissionsAsync();
+  if (existing.granted) return true;
+  if (!existing.canAskAgain) return false;
+  return (await Notifications.requestPermissionsAsync()).granted;
+}
+
+async function ensureChannel(Notifications: any): Promise<void> {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+    name: 'Padhai Streak',
+    importance: Notifications.AndroidImportance.DEFAULT
+  });
 }
 
 export async function scheduleDailyReminder(
@@ -27,24 +47,13 @@ export async function scheduleDailyReminder(
   if (!Notifications) return 'unsupported';
 
   try {
-    const existing = await Notifications.getPermissionsAsync();
-    let granted = existing.granted;
-    if (!granted && existing.canAskAgain) {
-      granted = (await Notifications.requestPermissionsAsync()).granted;
-    }
-    if (!granted) return 'denied';
+    if (!(await ensurePermission(Notifications))) return 'denied';
+    await ensureChannel(Notifications);
 
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-        name: 'Daily reminder',
-        importance: Notifications.AndroidImportance.DEFAULT
-      });
-    }
-
-    // One reminder at a time — clear before scheduling so changing the hour
-    // does not leave yesterday's trigger behind.
-    await Notifications.cancelAllScheduledNotificationsAsync();
+    // Replace rather than stack, so changing the hour leaves nothing behind.
+    await Notifications.cancelScheduledNotificationAsync(DAILY_ID).catch(() => {});
     await Notifications.scheduleNotificationAsync({
+      identifier: DAILY_ID,
       content: { title, body },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -63,9 +72,51 @@ export async function cancelDailyReminder(): Promise<void> {
   const Notifications = await load();
   if (!Notifications) return;
   try {
-    await Notifications.cancelAllScheduledNotificationsAsync();
+    await Notifications.cancelScheduledNotificationAsync(DAILY_ID);
   } catch {
     /* nothing scheduled, or the module is unavailable — either way, done. */
+  }
+}
+
+/** Fires when the running round is due to end, so the phone can be face-down
+ *  for the whole 25 minutes and still tell you when they are up. */
+export async function scheduleRoundEnd(
+  seconds: number,
+  title: string,
+  body: string
+): Promise<void> {
+  if (!(seconds > 0)) return;
+  const Notifications = await load();
+  if (!Notifications) return;
+
+  try {
+    // No permission prompt here: interrupting a round to ask would be rude,
+    // and the round works fine without the alarm.
+    if (!(await Notifications.getPermissionsAsync()).granted) return;
+    await ensureChannel(Notifications);
+    await Notifications.cancelScheduledNotificationAsync(ROUND_ID).catch(() => {});
+    await Notifications.scheduleNotificationAsync({
+      identifier: ROUND_ID,
+      content: { title, body },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: Math.max(1, Math.round(seconds)),
+        repeats: false,
+        channelId: CHANNEL_ID
+      }
+    });
+  } catch {
+    /* The round itself does not depend on this. */
+  }
+}
+
+export async function cancelRoundEnd(): Promise<void> {
+  const Notifications = await load();
+  if (!Notifications) return;
+  try {
+    await Notifications.cancelScheduledNotificationAsync(ROUND_ID);
+  } catch {
+    /* nothing scheduled. */
   }
 }
 

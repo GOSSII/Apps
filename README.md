@@ -40,7 +40,8 @@ notebook and honest about the numbers.
   saved behind your back
 - Break timer runs on its own clock and never counts as study time
 - Live clock keeps counting while the app is closed or the phone is locked
-- Screen stays awake while a round runs
+- Screen stays awake while a round runs, and a notification fires when the
+  round is up, so the phone can stay face-down for the whole 25 minutes
 - Leaving the app mid-round is counted and reported back to you, per round and
   in your stats as *clean rounds*
 
@@ -50,7 +51,7 @@ notebook and honest about the numbers.
 - 7-day and 30-day bar charts against your target line
 - 12-week calendar heatmap
 - Subject breakdown for this week or all time
-- Recent sittings list — edit the minutes or delete a sitting outright
+- Recent sittings list — change a sitting's length, date or subject, or delete it
 - Best streak, total hours, sittings, phone checks
 - Manual entry for study you did away from the phone
 - Exam name + date countdown
@@ -133,11 +134,12 @@ check that every Hindi string keeps the same `{placeholders}` as its English
 original.
 
 The UI is additionally driven end-to-end in a browser (react-native-web +
-headless Chromium) across 29 checks: a fixed round run to completion, the
+headless Chromium) across 32 checks: a fixed round run to completion, the
 break that follows it, skipping a break, open-ended sittings, pause freezing
 the countdown, distraction counts surfacing in focus mode, the calendar and
-clean-round stats, the Hindi switch across the new screens, and persistence
-across a full reload.
+clean-round stats, moving a past sitting to another subject and date (and the
+refusal to move one into the future), the Hindi switch across the new screens,
+and persistence across a full reload.
 
 ## Compared to Flipd
 
@@ -154,8 +156,8 @@ with no account:
 ## Not built yet
 
 - Notification copy that reacts to the day's progress (it is a fixed daily nudge)
-- A round that continues counting down in a notification while the app is closed
-- Editing the date or subject of a past sitting (only its length)
+- A live countdown *inside* the notification shade (the alarm fires at the end,
+  it does not tick)
 - Widgets, watch app, or cloud backup
 
 ## Licence

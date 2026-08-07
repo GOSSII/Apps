@@ -9,6 +9,7 @@ import {
 } from '../store';
 import { clockDuration } from '../lib/format';
 import { breakSecondsOf } from '../lib/presets';
+import { cancelRoundEnd, scheduleRoundEnd } from '../lib/notifications';
 
 const KEEP_AWAKE_TAG = 'padhai-focus';
 
@@ -30,6 +31,29 @@ export default function FocusScreen() {
     activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => {});
     return () => { deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => {}); };
   }, [running]);
+
+  /* The alarm mirrors the clock: scheduled on start and on every resume,
+     cancelled on pause and when the round ends. Without it a fixed round is
+     silent, which defeats the point of putting the phone down. */
+  const runningSince = active?.runningSince ?? null;
+  const plannedSeconds = active?.plannedSeconds ?? null;
+  const kind = active?.kind;
+  const subjectName = state.subjects.find(s => s.id === active?.subjectId)?.name ?? '';
+
+  useEffect(() => {
+    if (!runningSince || !plannedSeconds) {
+      void cancelRoundEnd();
+      return;
+    }
+    const left = plannedSeconds - Math.floor((Date.now() - runningSince) / 1000);
+    void scheduleRoundEnd(
+      left,
+      kind === 'break' ? t('breakOver') : t('roundComplete'),
+      kind === 'break' ? t('backToStudy') : t('roundSaved', { time: dur(plannedSeconds), subject: subjectName })
+    );
+    return () => { void cancelRoundEnd(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runningSince, plannedSeconds, kind]);
 
   const [finished, setFinished] = useState(false);
   const done = isRoundDone(active);
