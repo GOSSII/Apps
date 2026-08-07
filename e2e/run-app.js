@@ -10,9 +10,9 @@ const check = (name, ok, extra = '') => {
 const seed = (extra = {}) => ({
   v: 1,
   subjects: [
-    { id: 's1', name: 'Physics', color: '#7c5cff' },
-    { id: 's2', name: 'Chemistry', color: '#22c55e' },
-    { id: 's3', name: 'Maths', color: '#f59e0b' }
+    { id: 's1', name: 'Physics', color: '#3552CC' },
+    { id: 's2', name: 'Chemistry', color: '#12897E' },
+    { id: 's3', name: 'Maths', color: '#D2553A' }
   ],
   sessions: [],
   dailyTargetMinutes: 240,

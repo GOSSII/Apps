@@ -112,7 +112,7 @@ export default function FocusScreen() {
         stroke={16}
         progress={done ? 1 : progress}
         color={tint}
-        gradientTo={isBreak ? colors.good : colors.accent}
+        gradientTo={isBreak ? colors.good : '#6C8BFF'}
         trackColor={colors.surface2}
       >
         <Text style={styles.clock}>

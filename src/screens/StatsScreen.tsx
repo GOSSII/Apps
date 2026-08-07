@@ -339,8 +339,8 @@ export default function StatsScreen() {
 /** Four steps, not a continuous ramp: the eye reads bands, not gradients. */
 function heatColour(share: number): string {
   if (share <= 0) return colors.surface2;
-  if (share < 0.34) return 'rgba(124, 92, 255, 0.32)';
-  if (share < 0.67) return 'rgba(124, 92, 255, 0.62)';
+  if (share < 0.34) return 'rgba(53, 82, 204, 0.22)';
+  if (share < 0.67) return 'rgba(53, 82, 204, 0.55)';
   if (share < 1) return colors.accent;
   return colors.good;
 }

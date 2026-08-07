@@ -31,7 +31,7 @@ const check = (name, ok, extra = '') => {
   await page.evaluate(() => {
     localStorage.setItem('padhai-streak:v1', JSON.stringify({
       v: 1,
-      subjects: [{ id: 's1', name: 'Physics', color: '#7c5cff' }],
+      subjects: [{ id: 's1', name: 'Physics', color: '#3552CC' }],
       sessions: [
         // Four hours on the 9th and four on the 10th: a live two-day streak.
         { id: 'a', subjectId: 's1', day: '2026-08-09', seconds: 14400, endedAt: 1 },

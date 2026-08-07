@@ -117,9 +117,12 @@ Five decisions worth knowing:
 - **A restore says what it holds before it overwrites.** The file is parsed
   first, so the confirmation names how many sittings are at stake rather than
   asking for a blind yes.
-- **Two accent tokens, not one.** `accent` sits behind white button labels
-  (4.9:1); `accentText` is the same hue lightened for use *as* text on the dark
-  ground (5.1:1). No single value clears 4.5:1 in both roles.
+- **Colours are computed against their own ground, not picked by eye.** The
+  palette is light — a lavender ground, white cards, royal indigo — and every
+  value clears WCAG AA where it actually sits: text 13.7:1, muted 4.6:1, accent
+  5.9:1 as text and 6.5:1 behind white button labels. The accent runs a little
+  deeper than the app it is modelled on, which puts its blue on white at display
+  sizes where the bar is lower.
 - **The screen follows the day over, not just the data.** Day windows are
   recomputed when the local date changes, so an app left open at 00:01 shows
   the new day rather than last night's total.

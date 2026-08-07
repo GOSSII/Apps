@@ -1,10 +1,19 @@
 import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, space } from '../theme';
+import {
+  KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View
+} from 'react-native';
+import { cardShadow, colors, radius, space } from '../theme';
 import { Button } from './ui';
 
 /* Alert.alert is unreliable on web, and this app is previewed there — so
-   confirmations are plain Modals that behave identically everywhere. */
+   confirmations are plain Modals that behave identically everywhere.
+
+   The keyboard handling below has no visible effect in that preview, because
+   a browser has no soft keyboard. On a phone it is the difference between a
+   usable sheet and a trap: RN's Modal does not move for the keyboard, so a
+   centred sheet with a text field ends up with its input and its Save button
+   underneath it — and the only thing still tappable is the backdrop, which
+   closes the sheet and throws the entry away. */
 
 export function Sheet({ visible, title, onClose, children }: {
   visible: boolean;
@@ -14,12 +23,25 @@ export function Sheet({ visible, title, onClose, children }: {
 }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={e => e.stopPropagation()}>
-          <Text style={styles.title}>{title}</Text>
-          {children}
+      <KeyboardAvoidingView
+        style={styles.fill}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <Pressable style={styles.backdrop} onPress={onClose}>
+          <Pressable style={[styles.sheet, cardShadow]} onPress={e => e.stopPropagation()}>
+            <ScrollView
+              /* So a tap on Save lands on Save rather than being eaten by the
+                 keyboard dismissing. */
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.sheetBody}
+              showsVerticalScrollIndicator={false}
+            >
+              <Text style={styles.title}>{title}</Text>
+              {children}
+            </ScrollView>
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -54,9 +76,10 @@ export function Confirm({
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(22, 32, 90, 0.32)',
     justifyContent: 'center',
     padding: space.lg
   },
@@ -65,11 +88,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: space.lg,
     width: '100%',
     maxWidth: 480,
+    /* Room to shrink when the keyboard takes the bottom half of the screen. */
+    maxHeight: '100%',
     alignSelf: 'center'
   },
+  sheetBody: { padding: space.lg },
   title: { color: colors.text, fontSize: 18, fontWeight: '800', marginBottom: space.md },
   message: { color: colors.muted, marginBottom: space.lg, lineHeight: 20 },
   row: { flexDirection: 'row', gap: space.md },

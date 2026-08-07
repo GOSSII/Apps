@@ -12,7 +12,7 @@ const check = (name, ok, extra = '') => {
 
 const seeded = {
   v: 1,
-  subjects: [{ id: 's1', name: 'Physics', color: '#7c5cff' }],
+  subjects: [{ id: 's1', name: 'Physics', color: '#3552CC' }],
   sessions: [
     { id: 'a', subjectId: 's1', day: '2026-08-01', seconds: 5400, endedAt: 10 },
     { id: 'b', subjectId: 's1', day: '2026-08-02', seconds: 3600, endedAt: 20 }
