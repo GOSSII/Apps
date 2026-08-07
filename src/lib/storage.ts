@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { AppState } from '../types';
+import { defaultPomodoro } from './presets';
 
 const KEY = 'padhai-streak:v1';
 
@@ -11,7 +12,8 @@ export const emptyState = (): AppState => ({
   exam: null,
   active: null,
   lang: 'en',
-  reminder: { enabled: false, hour: 21, minute: 0 }
+  reminder: { enabled: false, hour: 21, minute: 0 },
+  pomodoro: defaultPomodoro()
 });
 
 export async function loadState(): Promise<AppState> {
@@ -27,7 +29,8 @@ export async function loadState(): Promise<AppState> {
       sessions: parsed.sessions ?? [],
       /* Older saves predate these fields — merge rather than replace, so an
          upgrade never lands the user on `undefined`. */
-      reminder: { ...base.reminder, ...(parsed.reminder ?? {}) }
+      reminder: { ...base.reminder, ...(parsed.reminder ?? {}) },
+      pomodoro: { ...base.pomodoro, ...(parsed.pomodoro ?? {}) }
     };
   } catch (err) {
     console.warn('Could not read saved data, starting fresh', err);

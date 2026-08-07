@@ -7,9 +7,9 @@ clock for a subject, and the app answers the only question that matters at
 Built with React Native + Expo. Runs on Android and iPhone from one codebase.
 English and हिंदी. No login, no server, no internet needed.
 
-| Today | Running | Stats | हिंदी |
+| Today | Focus mode | Round done | Stats |
 | --- | --- | --- | --- |
-| ![Today](docs/screenshots/shot-today.png) | ![Running](docs/screenshots/shot-running.png) | ![Stats](docs/screenshots/shot-stats.png) | ![Hindi](docs/screenshots/shot-hi-today.png) |
+| ![Today](docs/screenshots/shot-today.png) | ![Focus](docs/screenshots/shot-focus.png) | ![Round complete](docs/screenshots/shot-round-done.png) | ![Stats](docs/screenshots/shot-stats.png) |
 
 ## Why this one
 
@@ -32,19 +32,30 @@ notebook and honest about the numbers.
 
 ## Features
 
-- One-tap timer per subject, with pause/resume and discard
-- Live clock that keeps counting while the app is closed or the phone is locked
-- Screen stays awake while a session runs
-- Manual entry for study you did away from the phone
-- Daily target with progress bar, and a streak counter
+**Focus rounds**
+
+- Pick a round length — Open, Starter 15/5, Classic 25/5, Deep 50/10, or your own
+- Starting a round takes over the whole screen: one dial, one subject, no tabs
+- A finished round offers a break, another round, or stopping — nothing is
+  saved behind your back
+- Break timer runs on its own clock and never counts as study time
+- Live clock keeps counting while the app is closed or the phone is locked
+- Screen stays awake while a round runs
+- Leaving the app mid-round is counted and reported back to you, per round and
+  in your stats as *clean rounds*
+
+**Tracking**
+
+- Daily target shown as a dial, with a streak counter
 - 7-day and 30-day bar charts against your target line
+- 12-week calendar heatmap
 - Subject breakdown for this week or all time
 - Recent sittings list — edit the minutes or delete a sitting outright
-- Best streak, total hours, sittings count
+- Best streak, total hours, sittings, phone checks
+- Manual entry for study you did away from the phone
 - Exam name + date countdown
 - One daily reminder notification, at a time you choose
 - Full English / हिंदी interface
-- Quick-add subject chips for common exam tracks
 
 ## Run it
 
@@ -69,7 +80,7 @@ so in Settings rather than pretending the reminder is on.
 ## How it's built
 
 ```
-App.tsx                  tab shell (4 tabs, local state — no router needed)
+App.tsx                  tab shell, or focus mode when a round is running
 src/store.tsx            state, actions, persistence, useT/useDuration hooks
 src/i18n.ts              English + Hindi dictionaries
 src/types.ts             Subject, Session, ActiveTimer, Reminder, AppState
@@ -79,11 +90,12 @@ src/lib/dates.ts         local-day keys, date parsing
 src/lib/stats.ts         day totals, streaks, subject totals
 src/lib/format.ts        duration formatting (language-aware units)
 src/lib/notifications.ts daily reminder scheduling
-src/components/          Card, Button, ProgressBar, Chip, Sheet, Confirm
-src/screens/             Today, Stats, Subjects, Settings
+src/lib/presets.ts       round/break lengths
+src/components/          Ring (SVG dial), Card, Button, Chip, Sheet, Confirm
+src/screens/             Today, Focus, Stats, Subjects, Settings
 ```
 
-Four decisions worth knowing:
+Five decisions worth knowing:
 
 - **The timer is timestamps, never a counter.** A running session stores
   `runningSince` plus banked seconds, so time spent with the app swiped away —
@@ -94,6 +106,13 @@ Four decisions worth knowing:
   otherwise would make streaks lie.
 - **Confirmations are Modals, not `Alert.alert`.** `Alert` is unreliable on
   web, and the app is previewed there during development.
+- **A finished round freezes, it does not auto-save.** The clock stops and the
+  screen asks what next. Credit is capped at the length you asked for, so a
+  25-minute round left running for an hour still credits 25 minutes.
+- **Leaving the app is counted, not blocked.** Flipd-style Full Lock is an
+  OS-level feature this app cannot honestly claim, so instead every round
+  records how many times it went to the background, and the stats show how many
+  rounds were clean. Measuring is honest; pretending to lock the phone is not.
 - **`expo-notifications` is imported lazily, behind try/catch.** Scheduling is
   unavailable in the browser and restricted in Expo Go; neither should take the
   Settings screen down with it.
@@ -101,27 +120,41 @@ Four decisions worth knowing:
 ## Testing
 
 ```sh
-npm test          # 29 unit tests (jest-expo)
+npm test          # 42 unit tests (jest-expo)
 npm run typecheck # tsc --noEmit
 ```
 
 Unit tests cover the logic that is easy to get quietly wrong: streaks across
 missed days and in-progress days, best-streak detection across gaps, month and
 leap-day boundaries, rejection of impossible dates like 31 February and times
-like 25:00, the timer's pause/resume/app-closed arithmetic, and a check that
-every Hindi string keeps the same `{placeholders}` as its English original.
+like 25:00, the timer's pause/resume/app-closed arithmetic, round crediting
+(capped at the planned length, honest when ended early), preset lengths, and a
+check that every Hindi string keeps the same `{placeholders}` as its English
+original.
 
 The UI is additionally driven end-to-end in a browser (react-native-web +
-headless Chromium) across 22 checks: seeded history and streak counting,
-running/pausing/saving a session, manual logging, editing and deleting a
-sitting, the 30-day range, exam countdown, invalid-date and invalid-time
-handling, the Hindi switch including localised duration units, and persistence
+headless Chromium) across 29 checks: a fixed round run to completion, the
+break that follows it, skipping a break, open-ended sittings, pause freezing
+the countdown, distraction counts surfacing in focus mode, the calendar and
+clean-round stats, the Hindi switch across the new screens, and persistence
 across a full reload.
+
+## Compared to Flipd
+
+The round/break structure, the full-screen dial and the calendar view are
+modelled on [Flipd](https://www.flipdapp.co/). Three of its headline features
+are deliberately absent, because they cannot be done honestly in an offline app
+with no account:
+
+- **Full Lock** — blocking other apps needs OS-level permissions. This app
+  counts how often you leave instead.
+- **Live study rooms and leaderboards** — these need a server and an account.
+- **Lofi radio** — licensed audio, and streaming would break the offline promise.
 
 ## Not built yet
 
 - Notification copy that reacts to the day's progress (it is a fixed daily nudge)
-- History beyond 30 days, and a calendar/month view
+- A round that continues counting down in a notification while the app is closed
 - Editing the date or subject of a past sitting (only its length)
 - Widgets, watch app, or cloud backup
 

@@ -10,6 +10,7 @@ import TodayScreen from './src/screens/TodayScreen';
 import StatsScreen from './src/screens/StatsScreen';
 import SubjectsScreen from './src/screens/SubjectsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import FocusScreen from './src/screens/FocusScreen';
 import { colors, space } from './src/theme';
 
 type TabKey = 'today' | 'stats' | 'subjects' | 'settings';
@@ -33,6 +34,16 @@ function Root() {
       <View style={styles.loading}>
         <ActivityIndicator color={colors.accent} />
       </View>
+    );
+  }
+
+  /* A running sitting takes over the whole screen — no tabs, nothing to
+     wander off into. That is the point of the mode. */
+  if (state.active) {
+    return (
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <FocusScreen />
+      </SafeAreaView>
     );
   }
 

@@ -15,6 +15,10 @@ export type Session = {
   endedAt: number;
   /** True when the user typed the minutes in instead of running the timer. */
   manual?: boolean;
+  /** How many times the app went to the background mid-sitting. */
+  distractions?: number;
+  /** Set when the sitting ran as a fixed-length round rather than open-ended. */
+  planned?: boolean;
 };
 
 /** A timer that is running or paused. Kept as timestamps, never as a
@@ -25,6 +29,14 @@ export type ActiveTimer = {
   runningSince: number | null;
   /** Seconds banked before the current resume. */
   bankedSeconds: number;
+  /** Target length for a fixed round; null for an open-ended sitting. */
+  plannedSeconds: number | null;
+  /** A break does not count as study time and is never saved as a session. */
+  kind: 'focus' | 'break';
+  /** Times the app was backgrounded during this sitting. */
+  distractions: number;
+  /** Which round of the current Pomodoro cycle this is. */
+  round: number;
 };
 
 export type Exam = {
@@ -40,6 +52,15 @@ export type Reminder = {
   minute: number;
 };
 
+export type PresetKey = 'open' | 'starter' | 'standard' | 'deep' | 'custom';
+
+/** Focus/break lengths in minutes. `open` has no fixed length. */
+export type Pomodoro = {
+  preset: PresetKey;
+  focusMinutes: number;
+  breakMinutes: number;
+};
+
 export type AppState = {
   v: 1;
   subjects: Subject[];
@@ -49,4 +70,5 @@ export type AppState = {
   active: ActiveTimer | null;
   lang: Lang;
   reminder: Reminder;
+  pomodoro: Pomodoro;
 };

@@ -8,6 +8,7 @@ import { useApp, useT, useDuration } from '../store';
 import { hours } from '../lib/format';
 import { dayKey, prettyDate, weekdayLetter } from '../lib/dates';
 import { bestStreak, dayTotals, recentDays, totalsBySubject } from '../lib/stats';
+import { addDays } from '../lib/dates';
 
 const CHART_HEIGHT = 140;
 const RECENT_PREVIEW = 6;
@@ -52,6 +53,21 @@ export default function StatsScreen() {
     [sessions]
   );
   const visible = showAll ? recent : recent.slice(0, RECENT_PREVIEW);
+
+  /* 12 weeks of days, column per week, oldest first. */
+  const calendarWeeks = useMemo(() => {
+    const days = recentDays(84);
+    const weeks: string[][] = [];
+    for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+    return weeks;
+  }, []);
+
+  const timedRounds = sessions.filter(s => s.planned);
+  const totalDistractions = sessions.reduce((sum, s) => sum + (s.distractions || 0), 0);
+  const cleanRounds = timedRounds.filter(s => !s.distractions).length;
+  const cleanRoundsLabel = timedRounds.length
+    ? `${cleanRounds}/${timedRounds.length}`
+    : '—';
   const deletingSession = recent.find(s => s.id === deleting) || null;
 
   if (sessions.length === 0) {
@@ -150,6 +166,11 @@ export default function StatsScreen() {
               <Text style={styles.sittingMeta}>
                 {prettyDate(session.day)}
                 {session.manual ? ` · ${t('manualTag')}` : ''}
+                {session.distractions
+                  ? ` · ${session.distractions === 1
+                      ? t('checkOne')
+                      : t('checkMany', { n: session.distractions })}`
+                  : ''}
               </Text>
             </View>
             <Text style={styles.sittingTime}>{dur(session.seconds)}</Text>
@@ -172,6 +193,38 @@ export default function StatsScreen() {
             <Text style={styles.showAllText}>{t('showAll', { n: recent.length })}</Text>
           </Pressable>
         )}
+      </Card>
+
+      <SectionTitle>{t('calendarTitle')}</SectionTitle>
+      <Card>
+        <View style={styles.calendar}>
+          {calendarWeeks.map((week, wi) => (
+            <View key={wi} style={styles.calWeek}>
+              {week.map(day => {
+                const secs = totals[day] || 0;
+                const share = secs / targetSeconds;
+                return (
+                  <View
+                    key={day}
+                    style={[
+                      styles.calCell,
+                      { backgroundColor: heatColour(share) },
+                      day === dayKey() && styles.calToday
+                    ]}
+                  />
+                );
+              })}
+            </View>
+          ))}
+        </View>
+        <Text style={styles.legend}>{t('calendarLegend')}</Text>
+      </Card>
+
+      <Card>
+        <View style={styles.statRow}>
+          <Stat label={t('phoneChecks')} value={String(totalDistractions)} />
+          <Stat label={t('focusRate')} value={cleanRoundsLabel} />
+        </View>
       </Card>
 
       <Card>
@@ -230,6 +283,15 @@ export default function StatsScreen() {
   );
 }
 
+/** Four steps, not a continuous ramp: the eye reads bands, not gradients. */
+function heatColour(share: number): string {
+  if (share <= 0) return colors.surface2;
+  if (share < 0.34) return 'rgba(124, 92, 255, 0.32)';
+  if (share < 0.67) return 'rgba(124, 92, 255, 0.62)';
+  if (share < 1) return colors.accent;
+  return colors.good;
+}
+
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.stat}>
@@ -270,6 +332,10 @@ const styles = StyleSheet.create({
   barLabelToday: { color: colors.text, fontWeight: '800' },
   legend: { color: colors.muted, fontSize: 12, marginTop: space.sm },
   chipRow: { flexDirection: 'row', marginBottom: space.xs },
+  calendar: { flexDirection: 'row', justifyContent: 'space-between', gap: 4 },
+  calWeek: { flex: 1, gap: 4 },
+  calCell: { width: '100%', aspectRatio: 1, borderRadius: 3 },
+  calToday: { borderWidth: 1, borderColor: colors.text },
   subjectBlock: { marginTop: space.lg },
   subjectHead: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm },
   subjectName: { color: colors.text, fontWeight: '700', flex: 1 },

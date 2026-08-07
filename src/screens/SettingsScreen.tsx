@@ -4,17 +4,29 @@ import { Button, Card, Chip, SectionTitle } from '../components/ui';
 import { Confirm } from '../components/Modals';
 import { colors, radius, space } from '../theme';
 import { useApp, useT, useDuration } from '../store';
-import { LANGUAGES, type Lang } from '../i18n';
+import { LANGUAGES, type Key, type Lang } from '../i18n';
+import { PRESETS, PRESET_ORDER } from '../lib/presets';
+import type { PresetKey } from '../types';
 import { daysUntil, parseDateInput, prettyDate } from '../lib/dates';
 import {
   cancelDailyReminder, formatTime, parseTimeInput, scheduleDailyReminder
 } from '../lib/notifications';
 
+const PRESET_LABEL: Record<PresetKey, Key> = {
+  open: 'presetOpen',
+  starter: 'presetStarter',
+  standard: 'presetStandard',
+  deep: 'presetDeep',
+  custom: 'presetCustom'
+};
+
 export default function SettingsScreen() {
-  const { state, setDailyTarget, setExam, setLang, setReminder, resetAll } = useApp();
+  const {
+    state, setDailyTarget, setExam, setLang, setReminder, setPomodoro, resetAll
+  } = useApp();
   const t = useT();
   const dur = useDuration();
-  const { dailyTargetMinutes, exam, lang, reminder } = state;
+  const { dailyTargetMinutes, exam, lang, reminder, pomodoro } = state;
 
   const [examName, setExamName] = useState(exam?.name ?? '');
   const [examDate, setExamDate] = useState(exam ? prettyDate(exam.date) : '');
@@ -111,6 +123,27 @@ export default function SettingsScreen() {
             style={styles.flex}
             testID="target-plus"
           />
+        </View>
+      </Card>
+
+      <SectionTitle>{t('roundSettings')}</SectionTitle>
+      <Card>
+        <Text style={styles.target}>
+          {pomodoro.preset === 'open'
+            ? t('presetOpen')
+            : `${pomodoro.focusMinutes} / ${pomodoro.breakMinutes}`}
+        </Text>
+        <Text style={styles.hint}>{t('roundSettingsHint')}</Text>
+        <View style={styles.chipWrap}>
+          {PRESET_ORDER.filter(k => k !== 'custom').map(key => (
+            <Chip
+              key={key}
+              label={t(PRESET_LABEL[key])}
+              selected={pomodoro.preset === key}
+              onPress={() => setPomodoro(PRESETS[key as Exclude<PresetKey, 'custom'>])}
+              testID={`settings-preset-${key}`}
+            />
+          ))}
         </View>
       </Card>
 

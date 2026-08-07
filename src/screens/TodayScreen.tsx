@@ -1,61 +1,69 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Pressable, ScrollView, StyleSheet, Text, TextInput, View
-} from 'react-native';
-import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
-import { Button, Card, Chip, Dot, Empty, ProgressBar, SectionTitle } from '../components/ui';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Ring } from '../components/Ring';
+import { Button, Card, Chip, Dot, Empty, SectionTitle } from '../components/ui';
 import { Sheet } from '../components/Modals';
 import { colors, radius, space } from '../theme';
-import { elapsedOf, useApp, useT, useTicker, useDuration } from '../store';
-import { clockDuration } from '../lib/format';
+import { useApp, useDuration, useT } from '../store';
 import { dayKey, daysUntil } from '../lib/dates';
 import { currentStreak, dayTotals, totalsBySubject } from '../lib/stats';
+import { PRESETS, PRESET_ORDER, clampMinutes } from '../lib/presets';
+import type { Key } from '../i18n';
+import type { PresetKey } from '../types';
 
-const KEEP_AWAKE_TAG = 'padhai-timer';
+const PRESET_LABEL: Record<PresetKey, Key> = {
+  open: 'presetOpen',
+  starter: 'presetStarter',
+  standard: 'presetStandard',
+  deep: 'presetDeep',
+  custom: 'presetCustom'
+};
 
+/* The dashboard: one dial, one row of round lengths, one row of subjects,
+   one button. Everything else on this screen is a read-out. */
 export default function TodayScreen({ onManageSubjects }: { onManageSubjects: () => void }) {
-  const {
-    state, startTimer, pauseTimer, resumeTimer, stopTimer, discardTimer, logManual
-  } = useApp();
+  const { state, startTimer, logManual, setPomodoro } = useApp();
   const t = useT();
   const dur = useDuration();
-  const { active, subjects, sessions, dailyTargetMinutes, exam } = state;
-
-  const running = !!active?.runningSince;
-  useTicker(running);
-
-  /* The screen must not sleep mid-sitting — the phone is usually propped up
-     next to the books. */
-  useEffect(() => {
-    if (!running) return;
-    activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => {});
-    return () => { deactivateKeepAwake(KEEP_AWAKE_TAG).catch(() => {}); };
-  }, [running]);
+  const { subjects, sessions, dailyTargetMinutes, exam, pomodoro } = state;
 
   const today = dayKey();
   const targetSeconds = dailyTargetMinutes * 60;
 
   const totals = useMemo(() => dayTotals(sessions), [sessions]);
-  const savedToday = totals[today] || 0;
-  const live = elapsedOf(active);
-  const todaySeconds = savedToday + live;
-
-  const streak = useMemo(
-    () => currentStreak(totals, targetSeconds),
-    [totals, targetSeconds]
-  );
-
+  const todaySeconds = totals[today] || 0;
+  const streak = useMemo(() => currentStreak(totals, targetSeconds), [totals, targetSeconds]);
   const perSubjectToday = useMemo(
     () => totalsBySubject(sessions.filter(s => s.day === today)),
     [sessions, today]
   );
 
-  const activeSubject = subjects.find(s => s.id === active?.subjectId) || null;
   const remaining = Math.max(0, targetSeconds - todaySeconds);
   const done = remaining === 0;
 
+  const [picked, setPicked] = useState<string | null>(null);
+  const subject = subjects.find(s => s.id === picked) ?? subjects[0] ?? null;
+
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customFocus, setCustomFocus] = useState(String(pomodoro.focusMinutes || 30));
+  const [customBreak, setCustomBreak] = useState(String(pomodoro.breakMinutes || 5));
+
   const [logFor, setLogFor] = useState<string | null>(null);
   const [logMinutes, setLogMinutes] = useState('');
+
+  const choosePreset = (key: PresetKey) => {
+    if (key === 'custom') { setCustomOpen(true); return; }
+    setPomodoro(PRESETS[key]);
+  };
+
+  const saveCustom = () => {
+    setPomodoro({
+      preset: 'custom',
+      focusMinutes: clampMinutes(Number(customFocus)),
+      breakMinutes: clampMinutes(Number(customBreak), 60)
+    });
+    setCustomOpen(false);
+  };
 
   const submitManual = () => {
     const minutes = Number(logMinutes.replace(/[^\d.]/g, ''));
@@ -68,6 +76,10 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
     ? t('noStreak')
     : t(streak === 1 ? 'streakDays' : 'streakDaysPlural', { n: streak });
 
+  const roundCaption = pomodoro.preset === 'open'
+    ? t('openSession')
+    : `${pomodoro.focusMinutes} / ${pomodoro.breakMinutes}`;
+
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.headerRow}>
@@ -77,96 +89,117 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
         </View>
       </View>
 
-      <Card>
-        <Text style={styles.bigTime}>{dur(todaySeconds)}</Text>
-        <Text style={styles.subtle}>{t('ofTarget', { target: dur(targetSeconds) })}</Text>
-        <View style={{ marginTop: space.md }}>
-          <ProgressBar
-            value={todaySeconds / targetSeconds}
-            color={done ? colors.good : colors.accent}
-            height={12}
-          />
-        </View>
-        <Text style={[styles.subtle, { marginTop: space.sm }]}>
-          {done
-            ? t('targetDone', { time: dur(todaySeconds - targetSeconds) })
-            : t('toGo', { time: dur(remaining) })}
-        </Text>
+      <View style={styles.dialWrap}>
+        <Ring
+          size={252}
+          stroke={16}
+          progress={todaySeconds / targetSeconds}
+          color={done ? colors.good : colors.accent}
+          gradientTo={done ? colors.good : '#b49bff'}
+        >
+          <Text style={styles.bigTime}>{dur(todaySeconds)}</Text>
+          <Text style={styles.dialCaption}>
+            {t('ofTarget', { target: dur(targetSeconds) })}
+          </Text>
+          <Text style={[styles.dialSub, done && { color: colors.good }]}>
+            {done
+              ? t('targetDone', { time: dur(todaySeconds - targetSeconds) })
+              : t('toGo', { time: dur(remaining) })}
+          </Text>
+        </Ring>
+      </View>
 
-        {!!exam && (
-          <View style={styles.examRow}>
-            <Text style={styles.examText}>{examLine(t, exam.name, daysUntil(exam.date))}</Text>
-          </View>
-        )}
-      </Card>
-
-      {!!active && (
-        <Card style={{ borderColor: activeSubject?.color ?? colors.accent }}>
-          <View style={styles.rowCenter}>
-            <Dot color={activeSubject?.color ?? colors.accent} />
-            <Text style={styles.runningName}>{activeSubject?.name ?? t('subject')}</Text>
-          </View>
-          <Text style={styles.clock}>{clockDuration(live)}</Text>
-          <View style={styles.row}>
-            <Button
-              label={running ? t('pause') : t('resume')}
-              variant="ghost"
-              onPress={running ? pauseTimer : resumeTimer}
-              style={styles.flex}
-            />
-            <Button label={t('saveSession')} onPress={() => stopTimer()} style={styles.flex} />
-          </View>
-          <Pressable onPress={discardTimer} style={styles.discard}>
-            <Text style={styles.discardText}>{t('discardSitting')}</Text>
-          </Pressable>
-        </Card>
+      {!!exam && (
+        <Text style={styles.examText}>{examLine(t, exam.name, daysUntil(exam.date))}</Text>
       )}
-
-      <SectionTitle>{t('subjects')}</SectionTitle>
 
       {subjects.length === 0 ? (
         <Card>
           <Empty title={t('noSubjectsTitle')} hint={t('noSubjectsHint')} />
-          <Button label={t('addSubjects')} onPress={onManageSubjects} />
+          <Button label={t('addSubjects')} onPress={onManageSubjects} testID="add-subjects" />
         </Card>
       ) : (
-        <Card style={{ padding: 0 }}>
-          {subjects.map((subject, i) => {
-            const isActive = active?.subjectId === subject.id;
-            const secs = (perSubjectToday[subject.id] || 0) + (isActive ? live : 0);
-            return (
-              <View key={subject.id} style={[styles.subjectRow, i > 0 && styles.divider]}>
-                <Dot color={subject.color} />
-                <View style={styles.flex}>
-                  <Text style={styles.subjectName}>{subject.name}</Text>
-                  <Text style={styles.subjectTime}>
-                    {secs > 0
-                      ? t('todaySuffix', { time: dur(secs) })
-                      : t('notStartedToday')}
-                  </Text>
-                </View>
-                <Button
-                  label={isActive ? t('running') : t('start')}
-                  size="sm"
-                  variant={isActive ? 'ghost' : 'primary'}
-                  disabled={isActive}
-                  onPress={() => startTimer(subject.id)}
-                  testID={`start-${subject.id}`}
-                />
-              </View>
-            );
-          })}
-        </Card>
+        <>
+          <SectionTitle>{t('roundLength')}</SectionTitle>
+          <View style={styles.chipWrap}>
+            {PRESET_ORDER.map(key => (
+              <Chip
+                key={key}
+                label={t(PRESET_LABEL[key])}
+                selected={pomodoro.preset === key}
+                onPress={() => choosePreset(key)}
+                testID={`preset-${key}`}
+              />
+            ))}
+          </View>
+
+          <SectionTitle>{t('whatStudying')}</SectionTitle>
+          <View style={styles.chipWrap}>
+            {subjects.map(s => {
+              const secs = perSubjectToday[s.id] || 0;
+              const on = subject?.id === s.id;
+              return (
+                <Pressable
+                  key={s.id}
+                  onPress={() => setPicked(s.id)}
+                  testID={`pick-${s.id}`}
+                  style={({ pressed }) => [
+                    styles.subjectChip,
+                    on && { borderColor: s.color, backgroundColor: colors.surface },
+                    pressed && { opacity: 0.7 }
+                  ]}
+                >
+                  <Dot color={s.color} />
+                  <Text style={[styles.subjectName, on && { color: colors.text }]}>{s.name}</Text>
+                  {secs > 0 && <Text style={styles.subjectSecs}>{dur(secs)}</Text>}
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Button
+            label={t('startFocus')}
+            testID="start-focus"
+            onPress={() => subject && startTimer(subject.id)}
+            style={styles.start}
+          />
+          <Text style={styles.roundNote}>{roundCaption}</Text>
+
+          <Pressable onPress={() => setLogFor(subjects[0].id)} testID="log-manually">
+            <Text style={styles.manual}>{t('logManually')}</Text>
+          </Pressable>
+        </>
       )}
 
-      {subjects.length > 0 && (
-        <Button
-          label={t('logManually')}
-          variant="ghost"
-          testID="log-manually"
-          onPress={() => setLogFor(subjects[0].id)}
+      <Sheet visible={customOpen} title={t('presetCustom')} onClose={() => setCustomOpen(false)}>
+        <Text style={styles.label}>{t('customFocusMinutes')}</Text>
+        <TextInput
+          value={customFocus}
+          onChangeText={setCustomFocus}
+          keyboardType="number-pad"
+          style={styles.input}
+          testID="custom-focus"
+          placeholderTextColor={colors.muted}
         />
-      )}
+        <Text style={styles.label}>{t('customBreakMinutes')}</Text>
+        <TextInput
+          value={customBreak}
+          onChangeText={setCustomBreak}
+          keyboardType="number-pad"
+          style={styles.input}
+          testID="custom-break"
+          placeholderTextColor={colors.muted}
+        />
+        <View style={styles.row}>
+          <Button
+            label={t('cancel')}
+            variant="ghost"
+            onPress={() => setCustomOpen(false)}
+            style={styles.flex}
+          />
+          <Button label={t('save')} onPress={saveCustom} style={styles.flex} testID="custom-save" />
+        </View>
+      </Sheet>
 
       <Sheet visible={logFor !== null} title={t('logTime')} onClose={() => setLogFor(null)}>
         <Text style={styles.label}>{t('subject')}</Text>
@@ -205,7 +238,7 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
 }
 
 function examLine(
-  t: (key: 'examIn' | 'examTomorrow' | 'examToday' | 'examPast', p?: Record<string, string | number>) => string,
+  t: (key: Key, p?: Record<string, string | number>) => string,
   name: string,
   days: number
 ): string {
@@ -220,8 +253,7 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: space.md
+    justifyContent: 'space-between'
   },
   h1: { color: colors.text, fontSize: 28, fontWeight: '800' },
   streakPill: {
@@ -231,41 +263,55 @@ const styles = StyleSheet.create({
     paddingVertical: 6
   },
   streakText: { color: colors.text, fontWeight: '700' },
-  bigTime: { color: colors.text, fontSize: 44, fontWeight: '800', letterSpacing: -1 },
-  subtle: { color: colors.muted },
-  examRow: {
-    marginTop: space.lg,
-    paddingTop: space.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.line
+  dialWrap: { alignItems: 'center', marginVertical: space.lg },
+  bigTime: { color: colors.text, fontSize: 40, fontWeight: '800', letterSpacing: -1 },
+  dialCaption: { color: colors.muted, fontSize: 13, marginTop: 2 },
+  dialSub: { color: colors.muted, fontSize: 13, marginTop: 10, textAlign: 'center' },
+  examText: {
+    color: colors.warn,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: space.lg
   },
-  examText: { color: colors.warn, fontWeight: '700' },
-  rowCenter: { flexDirection: 'row', alignItems: 'center' },
-  runningName: { color: colors.text, fontWeight: '700', fontSize: 16 },
-  clock: {
-    color: colors.text,
-    fontSize: 46,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-    marginVertical: space.md,
-    textAlign: 'center'
-  },
-  row: { flexDirection: 'row', gap: space.md },
-  flex: { flex: 1 },
-  discard: { alignSelf: 'center', padding: space.md },
-  discardText: { color: colors.muted, fontSize: 13 },
-  subjectRow: {
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.sm },
+  subjectChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    gap: space.sm
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface2,
+    marginRight: space.sm,
+    marginBottom: space.sm,
+    gap: 2
   },
-  divider: { borderTopWidth: 1, borderTopColor: colors.line },
-  subjectName: { color: colors.text, fontWeight: '700', fontSize: 16 },
-  subjectTime: { color: colors.muted, fontSize: 13, marginTop: 2 },
+  subjectName: { color: colors.muted, fontWeight: '700' },
+  subjectSecs: {
+    color: colors.muted,
+    fontSize: 12,
+    marginLeft: space.sm,
+    fontVariant: ['tabular-nums']
+  },
+  start: { marginTop: space.md },
+  roundNote: {
+    color: colors.muted,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: space.sm,
+    fontVariant: ['tabular-nums']
+  },
+  manual: {
+    color: colors.muted,
+    textAlign: 'center',
+    marginTop: space.xl,
+    fontSize: 14,
+    fontWeight: '600'
+  },
   label: { color: colors.muted, marginBottom: space.sm, fontSize: 13 },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.md },
+  row: { flexDirection: 'row', gap: space.md },
+  flex: { flex: 1 },
   input: {
     backgroundColor: colors.bg,
     borderWidth: 1,
