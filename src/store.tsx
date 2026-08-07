@@ -71,6 +71,8 @@ type Actions = {
   setLang(lang: Lang): void;
   setReminder(reminder: Reminder): void;
   setPomodoro(pomodoro: Pomodoro): void;
+  /** Swaps in a restored backup wholesale. */
+  replaceAll(next: AppState): void;
   resetAll(): void;
 };
 
@@ -303,6 +305,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(s => ({ ...s, pomodoro }));
   }, []);
 
+  const replaceAll = useCallback((next: AppState) => {
+    /* A restore never carries a running timer across — see serialiseBackup. */
+    setState({ ...next, active: null });
+  }, []);
+
   const resetAll = useCallback(() => setState(emptyState()), []);
 
   const value = useMemo<Ctx>(() => ({
@@ -310,11 +317,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addSubject, renameSubject, deleteSubject,
     startTimer, startBreak, pauseTimer, resumeTimer, stopTimer, discardTimer,
     logManual, editSession, deleteSession, setDailyTarget, setExam,
-    setLang, setReminder, setPomodoro, resetAll
+    setLang, setReminder, setPomodoro, replaceAll, resetAll
   }), [state, ready, addSubject, renameSubject, deleteSubject, startTimer,
        startBreak, pauseTimer, resumeTimer, stopTimer, discardTimer, logManual,
        editSession, deleteSession, setDailyTarget, setExam, setLang, setReminder,
-       setPomodoro, resetAll]);
+       setPomodoro, replaceAll, resetAll]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

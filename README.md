@@ -53,6 +53,7 @@ notebook and honest about the numbers.
 - Subject breakdown for this week or all time
 - Recent sittings list — change a sitting's length, date or subject, or delete it
 - Best streak, total hours, sittings, phone checks
+- Backup to a file you can keep, and restore onto a new phone
 - Manual entry for study you did away from the phone
 - Exam name + date countdown
 - One daily reminder notification, at a time you choose
@@ -91,6 +92,8 @@ src/lib/dates.ts         local-day keys, date parsing
 src/lib/stats.ts         day totals, streaks, subject totals
 src/lib/format.ts        duration formatting (language-aware units)
 src/lib/notifications.ts daily reminder scheduling
+src/lib/backup.ts        backup serialise/parse (pure, heavily tested)
+src/lib/backupTransport.ts  file, share sheet, picker (platform-specific)
 src/lib/presets.ts       round/break lengths
 src/components/          Ring (SVG dial), Card, Button, Chip, Sheet, Confirm
 src/screens/             Today, Focus, Stats, Subjects, Settings
@@ -102,6 +105,12 @@ Five decisions worth knowing:
   `runningSince` plus banked seconds, so time spent with the app swiped away —
   or the phone face-down for two hours — is still counted. A `setInterval` only
   drives the display, and only while the clock is visibly running.
+- **A backup never carries a running timer.** Restoring someone into a
+  half-finished round on another phone, hours later, would credit time nobody
+  studied. The active timer is dropped on export and again on import.
+- **A restore says what it holds before it overwrites.** The file is parsed
+  first, so the confirmation names how many sittings are at stake rather than
+  asking for a blind yes.
 - **Two accent tokens, not one.** `accent` sits behind white button labels
   (4.9:1); `accentText` is the same hue lightened for use *as* text on the dark
   ground (5.1:1). No single value clears 4.5:1 in both roles.
@@ -129,7 +138,7 @@ Five decisions worth knowing:
 ## Testing
 
 ```sh
-npm test          # 55 unit tests (jest-expo)
+npm test          # 66 unit tests (jest-expo)
 npm run typecheck # tsc --noEmit
 ```
 
@@ -150,6 +159,10 @@ clean-round stats, a round finished last night and saved this morning landing
 on last night, moving a past sitting to another subject and date (and the
 refusal to move one into the future), the Hindi switch across the new screens,
 and persistence across a full reload.
+
+`e2e/run-backup.js` saves a real file through the browser's download path,
+wipes the app, and restores from that file's text — including what happens when
+the pasted text is junk or belongs to another app.
 
 A second script, `e2e/run-midnight.js`, installs a fake clock at 23:59:30 and
 fast-forwards past midnight with the app left open. Without the day-rollover
@@ -173,7 +186,7 @@ with no account:
 - Notification copy that reacts to the day's progress (it is a fixed daily nudge)
 - A live countdown *inside* the notification shade (the alarm fires at the end,
   it does not tick)
-- Widgets, watch app, or cloud backup
+- Widgets, watch app, or automatic cloud backup
 
 ## Licence
 

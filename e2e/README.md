@@ -14,6 +14,7 @@ npm install --no-save playwright-core
 node e2e/run-app.js        # 37 checks: rounds, breaks, stats, editing, Hindi
 node e2e/run-midnight.js   #  8 checks: the day rollover, on a faked clock
 node e2e/run-a11y.js       # 12 checks: names, roles, states, touch targets
+node e2e/run-backup.js     # 12 checks: saving a file, and restoring from one
 ```
 
 `run-a11y.js` reads the rendered DOM. react-native-web maps accessibility
