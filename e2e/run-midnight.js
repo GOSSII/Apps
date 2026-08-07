@@ -40,7 +40,10 @@ const check = (name, ok, extra = '') => {
       dailyTargetMinutes: 240,
       exam: null, active: null, lang: 'en',
       reminder: { enabled: false, hour: 21, minute: 0 },
-      pomodoro: { preset: 'standard', focusMinutes: 25, breakMinutes: 5 }
+      pomodoro: { preset: 'standard', focusMinutes: 25, breakMinutes: 5 },
+      /* The target was hit hours ago and the celebration already seen — which
+         is the realistic state at 23:59, and keeps this test about midnight. */
+      celebratedDay: '2026-08-10'
     }));
   });
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -61,6 +64,11 @@ const check = (name, ok, extra = '') => {
   check('after midnight the target is owed again', leftAfter === '4h to go', leftAfter);
   check('the streak survives the rollover — yesterday still counts',
     await page.getByText(/🔥 2 days/).isVisible());
+  /* The new day has nothing in it, so nothing has been earned in it. A
+     rollover that re-fired last night's confetti would be the worst possible
+     way to be woken at 00:01. */
+  check('the rollover does not replay last night\'s celebration',
+    (await page.getByTestId('celebration').isVisible().catch(() => false)) === false);
 
   // And the chart's "today" column moves with it.
   await page.getByTestId('tab-stats').click();

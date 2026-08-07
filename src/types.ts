@@ -79,4 +79,7 @@ export type AppState = {
   reminder: Reminder;
   pomodoro: Pomodoro;
   themePref: ThemePref;
+  /** The last day whose target-hit was celebrated, so reopening the app that
+   *  evening does not replay it. */
+  celebratedDay: string | null;
 };

@@ -11,6 +11,7 @@ import StatsScreen from './src/screens/StatsScreen';
 import SubjectsScreen from './src/screens/SubjectsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import FocusScreen from './src/screens/FocusScreen';
+import { Celebration } from './src/components/Celebration';
 import { ThemeProvider, space, themed, useColors, useTheme } from './src/theme';
 
 type TabKey = 'today' | 'stats' | 'subjects' | 'settings';
@@ -96,6 +97,9 @@ function Themed() {
     <ThemeProvider pref={state.themePref}>
       <Bar />
       <Root />
+      {/* Above everything, including full-screen focus mode — the target is
+          often crossed by the round that is still on screen. */}
+      <Celebration />
     </ThemeProvider>
   );
 }

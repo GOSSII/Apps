@@ -18,7 +18,8 @@ export const emptyState = (): AppState => ({
   lang: 'en',
   reminder: { enabled: false, hour: 21, minute: 0 },
   pomodoro: defaultPomodoro(),
-  themePref: 'system'
+  themePref: 'system',
+  celebratedDay: null
 });
 
 /** Subject colours were chosen when only the light ground existed. Left alone
@@ -67,6 +68,7 @@ export async function loadState(): Promise<AppState> {
       themePref: THEME_PREFS.includes(parsed.themePref as ThemePref)
         ? (parsed.themePref as ThemePref)
         : base.themePref,
+      celebratedDay: typeof parsed.celebratedDay === 'string' ? parsed.celebratedDay : null,
       /* Older saves predate these fields — merge rather than replace, so an
          upgrade never lands the user on `undefined`. */
       reminder: { ...base.reminder, ...(parsed.reminder ?? {}) },

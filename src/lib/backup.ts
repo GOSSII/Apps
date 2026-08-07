@@ -78,6 +78,10 @@ export function parseBackup(text: string): ParseResult {
       incoming.themePref === 'light' || incoming.themePref === 'dark'
         ? incoming.themePref
         : base.themePref,
+    /* Carried across, so restoring onto a new phone at 9pm does not replay a
+       celebration the user already had this morning on the old one. */
+    celebratedDay:
+      typeof incoming.celebratedDay === 'string' ? incoming.celebratedDay : null,
     active: null
   };
 

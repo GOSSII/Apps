@@ -138,6 +138,15 @@ const en = {
   examNeedsName: 'Give the exam a name',
   examBadDate: 'Use a date like 24/05/2027',
   remove: 'Remove',
+  // celebration
+  celebrateTargetTitle: 'Target done',
+  celebrateFirstTitle: 'First day done',
+  celebrateStreakTitle: '{n}-day streak',
+  celebrateBody: '{time} studied today.',
+  celebrateFirstNote: 'Day one. Come back tomorrow and it starts being a streak.',
+  celebrateStreakNote: '{n} days without a gap. That is a habit, not a good week.',
+  celebrateDismiss: 'Keep going',
+
   language: 'Language',
   appearance: 'Appearance',
   appearanceHint: 'Dark is worth having at 1am. System follows the phone.',
@@ -312,6 +321,15 @@ const hi: Record<Key, string> = {
   examNeedsName: 'परीक्षा का नाम लिखें',
   examBadDate: '24/05/2027 जैसी तारीख लिखें',
   remove: 'हटाएँ',
+  // celebration
+  celebrateTargetTitle: 'लक्ष्य पूरा',
+  celebrateFirstTitle: 'पहला दिन पूरा',
+  celebrateStreakTitle: '{n} दिन की स्ट्रीक',
+  celebrateBody: 'आज {time} पढ़ाई हुई।',
+  celebrateFirstNote: 'पहला दिन। कल फिर आइए, तभी यह स्ट्रीक बनेगी।',
+  celebrateStreakNote: 'लगातार {n} दिन, एक भी नागा नहीं। यह आदत है, सिर्फ़ अच्छा हफ़्ता नहीं।',
+  celebrateDismiss: 'आगे बढ़ते रहें',
+
   language: 'भाषा',
   appearance: 'रंग-रूप',
   appearanceHint: 'रात एक बजे डार्क आँखों के लिए बेहतर है। सिस्टम फ़ोन की सेटिंग मानता है।',
