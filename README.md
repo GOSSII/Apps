@@ -62,7 +62,7 @@ notebook and honest about the numbers.
 - Crossing the target celebrates — once a day, with a bigger moment on the
   first day ever and on milestone streaks
 - 7-day and 30-day bar charts against your target line
-- 12-week calendar heatmap
+- 12-week calendar heatmap, with weekday rows and a colour scale you can read
 - Subject breakdown for this week or all time
 - Recent sittings list — change a sitting's length, date or subject, or delete it
 - Best streak, total hours, sittings, phone checks
@@ -159,6 +159,12 @@ Five decisions worth knowing:
   celebration during a break does not fight the timer for the JS thread. With
   reduce-motion on it is dropped entirely rather than slowed — the message is
   the part that matters.
+- **The calendar's rows are weekdays, and now say so.** 84 days ending today
+  divides evenly by seven, so row *N* of the grid is always the same weekday —
+  which makes "I always lose Sundays" visible, but only once the rows are
+  labelled. They are, in Hindi as well as English, and an empty twelve weeks
+  now says it is empty rather than showing 84 identical squares under a legend
+  about colour.
 - **The screen follows the day over, not just the data.** Day windows are
   recomputed when the local date changes, so an app left open at 00:01 shows
   the new day rather than last night's total.
@@ -183,7 +189,7 @@ Five decisions worth knowing:
 ## Testing
 
 ```sh
-npm test          # 109 unit tests (jest-expo)
+npm test          # 113 unit tests (jest-expo)
 npm run typecheck # tsc --noEmit
 ```
 
@@ -193,13 +199,14 @@ leap-day boundaries, rejection of impossible dates like 31 February and times
 like 25:00, the timer's pause/resume/app-closed arithmetic, round crediting
 (capped at the planned length, honest when ended early), the instant a stopped
 round is dated to, when a day's target is worth celebrating and the several
-ways it must stay quiet, preset lengths, storage upgrades from older saves, a
+ways it must stay quiet, weekday letters in both languages and the fact that
+the calendar's rows really are fixed weekdays, preset lengths, storage upgrades from older saves, a
 check that every Hindi string keeps the same `{placeholders}` as its English
 original, and both palettes measured against every ground they are painted on.
 
 The UI is additionally driven end-to-end in a browser (react-native-web +
-headless Chromium) — see `e2e/` for how to run them, 106 checks in all. The main
-script's 37 cover: a fixed round run to completion, the
+headless Chromium) — see `e2e/` for how to run them, 113 checks in all. The main
+script's 43 cover: a fixed round run to completion, the
 break that follows it, skipping a break, open-ended sittings, pause freezing
 the countdown, distraction counts surfacing in focus mode, the calendar and
 clean-round stats, a round finished last night and saved this morning landing

@@ -82,7 +82,10 @@ const en = {
   customFocusMinutes: 'Round length (minutes)',
   customBreakMinutes: 'Break length (minutes)',
   calendarTitle: 'Last 12 weeks',
-  calendarLegend: 'Each square is a day · brighter means longer',
+  calendarLegend: 'Each square is a day · green means the target was hit',
+  calendarLess: 'Less',
+  calendarMore: 'More',
+  calendarNothing: 'Nothing in the last 12 weeks yet — the days you study fill in here.',
   addSubjectFirst: 'Add a subject to start the clock.',
 
   // stats
@@ -268,7 +271,10 @@ const hi: Record<Key, string> = {
   customFocusMinutes: 'राउंड की लंबाई (मिनट)',
   customBreakMinutes: 'ब्रेक की लंबाई (मिनट)',
   calendarTitle: 'पिछले 12 हफ़्ते',
-  calendarLegend: 'हर खाना एक दिन · जितना चमकीला, उतना ज़्यादा',
+  calendarLegend: 'हर खाना एक दिन · हरा मतलब उस दिन लक्ष्य पूरा हुआ',
+  calendarLess: 'कम',
+  calendarMore: 'ज़्यादा',
+  calendarNothing: 'पिछले 12 हफ़्तों में अभी कुछ नहीं — जिन दिनों आप पढ़ेंगे, वे यहाँ भरते जाएँगे।',
   addSubjectFirst: 'टाइमर चलाने के लिए पहले विषय जोड़ें।',
 
   stats: 'रिपोर्ट',

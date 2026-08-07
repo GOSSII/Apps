@@ -68,6 +68,13 @@ export default function StatsScreen() {
     return weeks;
   }, [today]);
 
+  /* Sessions can all be older than the window — someone coming back after a
+     term off has a history and an empty grid. */
+  const calendarEmpty = useMemo(
+    () => calendarWeeks.every(week => week.every(day => !(totals[day] > 0))),
+    [calendarWeeks, totals]
+  );
+
   const timedRounds = sessions.filter(s => s.planned);
   const totalDistractions = sessions.reduce((sum, s) => sum + (s.distractions || 0), 0);
   const cleanRounds = timedRounds.filter(s => !s.distractions).length;
@@ -111,7 +118,7 @@ export default function StatsScreen() {
             const isToday = day === today;
             /* At 30 bars there is no room for a label under each one. */
             const label = range === 7
-              ? weekdayLetter(day)
+              ? weekdayLetter(day, state.lang)
               : isToday || i % 5 === 0 ? day.slice(-2) : '';
             return (
               <View key={day} style={styles.barCol}>
@@ -216,6 +223,17 @@ export default function StatsScreen() {
       <SectionTitle>{t('calendarTitle')}</SectionTitle>
       <Card>
         <View style={styles.calendar}>
+          {/* The rows are fixed weekdays — 84 divides by 7, so the bottom row
+              is always today's weekday and the one above it yesterday's.
+              Without these letters that is true but undiscoverable, and "I
+              always lose Sundays" is exactly what this grid is for. */}
+          <View style={styles.calLabels}>
+            {calendarWeeks[calendarWeeks.length - 1].map(day => (
+              <View key={day} style={styles.calLabelCell}>
+                <Text style={styles.calLabel}>{weekdayLetter(day, state.lang)}</Text>
+              </View>
+            ))}
+          </View>
           {calendarWeeks.map((week, wi) => (
             <View key={wi} style={styles.calWeek}>
               {week.map(day => {
@@ -235,7 +253,27 @@ export default function StatsScreen() {
             </View>
           ))}
         </View>
-        <Text style={styles.legend}>{t('calendarLegend')}</Text>
+
+        {/* An empty grid is indistinguishable from a broken one, so when there
+            is genuinely nothing in the window it says so rather than leaving
+            84 identical squares under a legend about colour. */}
+        {calendarEmpty ? (
+          <Text style={styles.legend} testID="calendar-nothing">{t('calendarNothing')}</Text>
+        ) : (
+          <>
+            <View style={styles.scaleRow}>
+              <Text style={styles.legend}>{t('calendarLess')}</Text>
+              {[0, 0.2, 0.5, 0.9, 1].map(share => (
+                <View
+                  key={share}
+                  style={[styles.scaleCell, { backgroundColor: heatColour(share, colors) }]}
+                />
+              ))}
+              <Text style={styles.legend}>{t('calendarMore')}</Text>
+            </View>
+            <Text style={styles.legend}>{t('calendarLegend')}</Text>
+          </>
+        )}
       </Card>
 
       <Card>
@@ -391,8 +429,15 @@ const useStyles = themed((colors) => StyleSheet.create({
   legend: { color: colors.muted, fontSize: 12, marginTop: space.sm },
   chipRow: { flexDirection: 'row', marginBottom: space.xs },
   calendar: { flexDirection: 'row', justifyContent: 'space-between', gap: 4 },
+  /* No fixed height: the column stretches to the grid beside it, and seven
+     flexed cells then land exactly on the seven rows of squares. */
+  calLabels: { gap: 4, marginRight: 2 },
+  calLabelCell: { flex: 1, justifyContent: 'center', minWidth: 12 },
+  calLabel: { color: colors.muted, fontSize: 9, textAlign: 'center' },
   calWeek: { flex: 1, gap: 4 },
   calCell: { width: '100%', aspectRatio: 1, borderRadius: 3 },
+  scaleRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: space.md },
+  scaleCell: { width: 12, height: 12, borderRadius: 3 },
   calToday: { borderWidth: 1, borderColor: colors.text },
   subjectBlock: { marginTop: space.lg },
   subjectHead: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm },

@@ -76,6 +76,9 @@ a real finding — the browser could not have caught it.
 | Switch to हिंदी on a small (320dp) screen | No clipped or overlapping labels, especially "फ़ोकस शुरू करें" and the round presets |
 | Watch the dial while a round runs | The digits do not jitter as the seconds tick |
 | Turn on TalkBack and swipe through the dashboard | Every control is announced with a name; the chosen subject says it is selected |
+| Look at the 12-week calendar | The weekday letters line up exactly with the rows of squares, at every screen width |
+| Switch to हिंदी and look at it again | The letters are र/सो/मं/बु/गु/शु/श, and the two-character ones are not clipped |
+| Open Stats on a phone with study only from months ago | The grid says it is empty rather than showing 84 identical squares |
 
 ### The target celebration
 
