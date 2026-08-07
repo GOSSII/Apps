@@ -102,6 +102,9 @@ Five decisions worth knowing:
   `runningSince` plus banked seconds, so time spent with the app swiped away —
   or the phone face-down for two hours — is still counted. A `setInterval` only
   drives the display, and only while the clock is visibly running.
+- **Two accent tokens, not one.** `accent` sits behind white button labels
+  (4.9:1); `accentText` is the same hue lightened for use *as* text on the dark
+  ground (5.1:1). No single value clears 4.5:1 in both roles.
 - **The screen follows the day over, not just the data.** Day windows are
   recomputed when the local date changes, so an app left open at 00:01 shows
   the new day rather than last night's total.

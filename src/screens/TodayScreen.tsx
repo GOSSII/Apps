@@ -141,6 +141,12 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
               return (
                 <Pressable
                   key={s.id}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on, checked: on }}
+                  aria-checked={on}
+                  accessibilityLabel={secs > 0
+                    ? `${s.name}, ${t('todaySuffix', { time: dur(secs) })}`
+                    : s.name}
                   onPress={() => setPicked(s.id)}
                   testID={`pick-${s.id}`}
                   style={({ pressed }) => [
@@ -277,6 +283,7 @@ const styles = StyleSheet.create({
   subjectChip: {
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 44,
     paddingVertical: space.sm,
     paddingHorizontal: space.md,
     borderRadius: radius.pill,

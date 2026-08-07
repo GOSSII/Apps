@@ -32,6 +32,13 @@ export function Ring({
 
   return (
     <View style={{ width: size, height: size }}>
+      <View
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+        accessibilityElementsHidden
+        aria-hidden
+        pointerEvents="none"
+      >
       <Svg width={size} height={size}>
         <Defs>
           <LinearGradient id="ringFill" x1="0" y1="0" x2="1" y2="1">
@@ -65,6 +72,7 @@ export function Ring({
           />
         )}
       </Svg>
+      </View>
       <View style={[styles.center, { width: size, height: size }]} pointerEvents="box-none">
         {children}
       </View>

@@ -13,7 +13,13 @@ npx expo start --web --port 8081
 npm install --no-save playwright-core
 node e2e/run-app.js        # 37 checks: rounds, breaks, stats, editing, Hindi
 node e2e/run-midnight.js   #  8 checks: the day rollover, on a faked clock
+node e2e/run-a11y.js       # 12 checks: names, roles, states, touch targets
 ```
+
+`run-a11y.js` reads the rendered DOM. react-native-web maps accessibility
+props onto ARIA, so what it sees is a fair proxy for what TalkBack sees on the
+device — it is how we found that react-native-web does not translate
+`accessibilityState` into ARIA at all, and that the row actions were 31px tall.
 
 `run-midnight.js` installs a fake clock at 23:59:30 and fast-forwards past
 midnight with the app left open — the way an aspirant actually uses it at 1am.

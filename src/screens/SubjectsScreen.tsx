@@ -84,12 +84,19 @@ export default function SubjectsScreen() {
                 </Text>
               </View>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t('rename')} — ${subject.name}`}
                 onPress={() => setEditing({ id: subject.id, name: subject.name })}
                 style={styles.action}
               >
                 <Text style={styles.actionText}>{t('rename')}</Text>
               </Pressable>
-              <Pressable onPress={() => setDeleting(subject.id)} style={styles.action}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t('delete')} — ${subject.name}`}
+                onPress={() => setDeleting(subject.id)}
+                style={styles.action}
+              >
                 <Text style={[styles.actionText, { color: colors.danger }]}>{t('delete')}</Text>
               </Pressable>
             </View>
@@ -176,7 +183,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   name: { color: colors.text, fontWeight: '700', fontSize: 16 },
   meta: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  action: { paddingHorizontal: space.sm, paddingVertical: space.sm },
+  action: { paddingHorizontal: space.sm, paddingVertical: space.sm, minHeight: 44, justifyContent: 'center' },
   actionText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
   sheetRow: { flexDirection: 'row', gap: space.md }
 });

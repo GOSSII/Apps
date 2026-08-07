@@ -94,6 +94,8 @@ export function Chip({ label, onPress, selected, testID }: {
       onPress={onPress}
       testID={testID}
       accessibilityRole="button"
+      accessibilityState={{ selected: !!selected }}
+      aria-pressed={!!selected}
       style={({ pressed }) => [
         styles.chip,
         selected && styles.chipSelected,
@@ -142,7 +144,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     backgroundColor: colors.surface2
   },
-  btnSm: { minHeight: 38, paddingHorizontal: space.md, borderRadius: radius.sm },
+  btnSm: { minHeight: 44, paddingHorizontal: space.md, borderRadius: radius.sm },
   btnPrimary: { backgroundColor: colors.accent, borderColor: colors.accent },
   btnGhost: { backgroundColor: 'transparent' },
   btnDanger: { backgroundColor: 'transparent', borderColor: colors.danger },
@@ -152,6 +154,8 @@ const styles = StyleSheet.create({
   track: { backgroundColor: colors.surface2, overflow: 'hidden', width: '100%' },
   dot: { width: 10, height: 10, borderRadius: 5, marginRight: space.sm },
   chip: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     borderRadius: radius.pill,

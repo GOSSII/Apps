@@ -8,7 +8,11 @@ export const colors = {
   line: '#272d3a',
   text: '#eef1f6',
   muted: '#98a1b2',
-  accent: '#7c5cff',
+  /* Fill for buttons and the dial. White at 16px bold on this reads 4.9:1. */
+  accent: '#7353f5',
+  /* The same hue lightened for use AS text on the dark ground: 5.1:1.
+     One token cannot clear 4.5:1 in both roles. */
+  accentText: '#8b6cff',
   accentSoft: '#2a2350',
   good: '#22c55e',
   warn: '#f59e0b',

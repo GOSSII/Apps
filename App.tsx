@@ -67,6 +67,7 @@ function Root() {
               onPress={() => setTab(key)}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
+              aria-selected={selected}
               style={styles.tab}
             >
               <View>

@@ -179,6 +179,8 @@ export default function StatsScreen() {
             </View>
             <Text style={styles.sittingTime}>{dur(session.seconds)}</Text>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t('edit')} — ${subjectName(session.subjectId)}, ${prettyDate(session.day)}`}
               onPress={() => {
                 setEditError(null);
                 setEditing({
@@ -192,7 +194,12 @@ export default function StatsScreen() {
             >
               <Text style={styles.actionText}>{t('edit')}</Text>
             </Pressable>
-            <Pressable onPress={() => setDeleting(session.id)} style={styles.action}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t('delete')} — ${subjectName(session.subjectId)}, ${prettyDate(session.day)}`}
+              onPress={() => setDeleting(session.id)}
+              style={styles.action}
+            >
               <Text style={[styles.actionText, { color: colors.danger }]}>{t('delete')}</Text>
             </Pressable>
           </View>
@@ -403,10 +410,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600'
   },
-  action: { paddingHorizontal: space.xs, paddingVertical: space.sm },
+  action: { paddingHorizontal: space.xs, paddingVertical: space.sm, minHeight: 44, justifyContent: 'center' },
   actionText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
   showAll: { padding: space.md, alignItems: 'center' },
-  showAllText: { color: colors.accent, fontWeight: '700', fontSize: 13 },
+  showAllText: { color: colors.accentText, fontWeight: '700', fontSize: 13 },
   label: { color: colors.muted, marginBottom: space.sm, fontSize: 13 },
   input: {
     backgroundColor: colors.bg,
