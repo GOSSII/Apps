@@ -3,8 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { Button, Card, Chip, Dot, Empty, SectionTitle } from '../components/ui';
 import { Confirm, Sheet } from '../components/Modals';
 import { colors, radius, space } from '../theme';
-import { useApp } from '../store';
-import { humanDuration } from '../lib/format';
+import { useApp, useT, useDuration } from '../store';
 import { totalsBySubject } from '../lib/stats';
 
 /* Covers the common exam tracks without making the user type on a phone
@@ -18,6 +17,8 @@ const QUICK_ADD = [
 
 export default function SubjectsScreen() {
   const { state, addSubject, renameSubject, deleteSubject } = useApp();
+  const t = useT();
+  const dur = useDuration();
   const { subjects, sessions } = state;
 
   const [name, setName] = useState('');
@@ -39,7 +40,7 @@ export default function SubjectsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.h1}>Subjects</Text>
+      <Text style={styles.h1}>{t('subjects')}</Text>
 
       <Card>
         <View style={styles.addRow}>
@@ -48,16 +49,16 @@ export default function SubjectsScreen() {
             onChangeText={setName}
             onSubmitEditing={submit}
             returnKeyType="done"
-            placeholder="Add a subject"
+            placeholder={t('addSubjectPlaceholder')}
             placeholderTextColor={colors.muted}
             style={styles.input}
           />
-          <Button label="Add" onPress={submit} size="sm" />
+          <Button label={t('add')} onPress={submit} size="sm" testID="add-subject" />
         </View>
 
         {suggestions.length > 0 && (
           <>
-            <Text style={styles.hint}>Tap to add</Text>
+            <Text style={styles.hint}>{t('tapToAdd')}</Text>
             <View style={styles.chipWrap}>
               {suggestions.slice(0, 8).map(s => (
                 <Chip key={s} label={s} onPress={() => addSubject(s)} />
@@ -67,10 +68,10 @@ export default function SubjectsScreen() {
         )}
       </Card>
 
-      <SectionTitle>Your subjects</SectionTitle>
+      <SectionTitle>{t('yourSubjects')}</SectionTitle>
 
       {subjects.length === 0 ? (
-        <Card><Empty title="Nothing added yet" hint="Add a few subjects above to start tracking." /></Card>
+        <Card><Empty title={t('nothingAdded')} hint={t('nothingAddedHint')} /></Card>
       ) : (
         <Card style={{ padding: 0 }}>
           {subjects.map((subject, i) => (
@@ -79,17 +80,24 @@ export default function SubjectsScreen() {
               <View style={styles.flex}>
                 <Text style={styles.name}>{subject.name}</Text>
                 <Text style={styles.meta}>
-                  {humanDuration(allTime[subject.id] || 0)} all time
+                  {t('allTimeSuffix', { time: dur(allTime[subject.id] || 0) })}
                 </Text>
               </View>
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t('rename')} — ${subject.name}`}
                 onPress={() => setEditing({ id: subject.id, name: subject.name })}
                 style={styles.action}
               >
-                <Text style={styles.actionText}>Rename</Text>
+                <Text style={styles.actionText}>{t('rename')}</Text>
               </Pressable>
-              <Pressable onPress={() => setDeleting(subject.id)} style={styles.action}>
-                <Text style={[styles.actionText, { color: colors.danger }]}>Delete</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t('delete')} — ${subject.name}`}
+                onPress={() => setDeleting(subject.id)}
+                style={styles.action}
+              >
+                <Text style={[styles.actionText, { color: colors.danger }]}>{t('delete')}</Text>
               </Pressable>
             </View>
           ))}
@@ -98,7 +106,7 @@ export default function SubjectsScreen() {
 
       <Sheet
         visible={editing !== null}
-        title="Rename subject"
+        title={t('renameSubject')}
         onClose={() => setEditing(null)}
       >
         <TextInput
@@ -109,13 +117,13 @@ export default function SubjectsScreen() {
         />
         <View style={styles.sheetRow}>
           <Button
-            label="Cancel"
+            label={t('cancel')}
             variant="ghost"
             onPress={() => setEditing(null)}
             style={styles.flex}
           />
           <Button
-            label="Save"
+            label={t('save')}
             onPress={() => {
               if (editing) renameSubject(editing.id, editing.name);
               setEditing(null);
@@ -127,13 +135,14 @@ export default function SubjectsScreen() {
 
       <Confirm
         visible={deleting !== null}
-        title={`Delete ${deletingSubject?.name ?? 'subject'}?`}
+        title={t('deleteSubjectTitle', { name: deletingSubject?.name ?? '' })}
         message={
           deletingSessions > 0
-            ? `${deletingSessions} logged sitting${deletingSessions === 1 ? '' : 's'} will be deleted too. This cannot be undone.`
-            : 'This cannot be undone.'
+            ? t('deleteSubjectWithSessions', { n: deletingSessions })
+            : t('cannotUndo')
         }
-        confirmLabel="Delete"
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
         destructive
         onCancel={() => setDeleting(null)}
         onConfirm={() => {
@@ -174,7 +183,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   name: { color: colors.text, fontWeight: '700', fontSize: 16 },
   meta: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  action: { paddingHorizontal: space.sm, paddingVertical: space.sm },
+  action: { paddingHorizontal: space.sm, paddingVertical: space.sm, minHeight: 44, justifyContent: 'center' },
   actionText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
   sheetRow: { flexDirection: 'row', gap: space.md }
 });

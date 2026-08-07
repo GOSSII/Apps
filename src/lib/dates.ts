@@ -38,6 +38,13 @@ export function prettyDate(key: string): string {
   return `${d} ${months[m - 1]} ${y}`;
 }
 
+/** What the date inputs are pre-filled with. Must be a format parseDateInput
+ *  accepts — prettyDate ('1 Aug 2026') is for reading, not for editing. */
+export function dateInputValue(key: string): string {
+  const [y, m, d] = key.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 /** Accepts what people actually type: 12/08/2026, 12-8-2026, 2026-08-12. */
 export function parseDateInput(text: string): string | null {
   const parts = text.trim().split(/[\/\-.\s]+/).filter(Boolean).map(Number);

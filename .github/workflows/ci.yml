@@ -1,0 +1,33 @@
+name: CI
+
+# Pushes to a PR branch would otherwise be checked twice — once for the push
+# and once for the pull_request — so pushes are only watched on main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: Typecheck and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test -- --ci
+
+# The end-to-end scripts in e2e/ are not run here: each needs a Metro dev
+# server and a real browser alongside it, which is slow and flaky on a runner.
+# They are meant to be run against a dev server by hand — see e2e/README.md.

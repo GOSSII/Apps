@@ -4,26 +4,29 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { AppProvider, useApp } from './src/store';
+import { AppProvider, useApp, useT } from './src/store';
+import type { Key } from './src/i18n';
 import TodayScreen from './src/screens/TodayScreen';
 import StatsScreen from './src/screens/StatsScreen';
 import SubjectsScreen from './src/screens/SubjectsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import FocusScreen from './src/screens/FocusScreen';
 import { colors, space } from './src/theme';
 
 type TabKey = 'today' | 'stats' | 'subjects' | 'settings';
 
-const TABS: { key: TabKey; label: string; icon: string }[] = [
-  { key: 'today', label: 'Today', icon: '⏱' },
-  { key: 'stats', label: 'Stats', icon: '📊' },
-  { key: 'subjects', label: 'Subjects', icon: '📚' },
-  { key: 'settings', label: 'Settings', icon: '⚙️' }
+const TABS: { key: TabKey; labelKey: Key; icon: string }[] = [
+  { key: 'today', labelKey: 'tabToday', icon: '⏱' },
+  { key: 'stats', labelKey: 'tabStats', icon: '📊' },
+  { key: 'subjects', labelKey: 'tabSubjects', icon: '📚' },
+  { key: 'settings', labelKey: 'tabSettings', icon: '⚙️' }
 ];
 
 /* Four screens and no deep links — a tab bar over local state is the whole
    navigation need here, and it keeps the bundle (and the install) small. */
 function Root() {
   const { ready, state } = useApp();
+  const t = useT();
   const [tab, setTab] = useState<TabKey>('today');
 
   if (!ready) {
@@ -31,6 +34,16 @@ function Root() {
       <View style={styles.loading}>
         <ActivityIndicator color={colors.accent} />
       </View>
+    );
+  }
+
+  /* A running sitting takes over the whole screen — no tabs, nothing to
+     wander off into. That is the point of the mode. */
+  if (state.active) {
+    return (
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <FocusScreen />
+      </SafeAreaView>
     );
   }
 
@@ -44,7 +57,7 @@ function Root() {
       </View>
 
       <View style={styles.tabBar}>
-        {TABS.map(({ key, label, icon }) => {
+        {TABS.map(({ key, labelKey, icon }) => {
           const selected = tab === key;
           const showRunningDot = key === 'today' && !!state.active?.runningSince;
           return (
@@ -54,13 +67,16 @@ function Root() {
               onPress={() => setTab(key)}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
+              aria-selected={selected}
               style={styles.tab}
             >
               <View>
                 <Text style={[styles.tabIcon, selected && styles.tabIconOn]}>{icon}</Text>
                 {showRunningDot && <View style={styles.runningDot} />}
               </View>
-              <Text style={[styles.tabLabel, selected && styles.tabLabelOn]}>{label}</Text>
+              <Text style={[styles.tabLabel, selected && styles.tabLabelOn]}>
+                {t(labelKey)}
+              </Text>
             </Pressable>
           );
         })}
