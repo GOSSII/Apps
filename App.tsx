@@ -11,7 +11,7 @@ import StatsScreen from './src/screens/StatsScreen';
 import SubjectsScreen from './src/screens/SubjectsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import FocusScreen from './src/screens/FocusScreen';
-import { colors, space } from './src/theme';
+import { ThemeProvider, space, themed, useColors, useTheme } from './src/theme';
 
 type TabKey = 'today' | 'stats' | 'subjects' | 'settings';
 
@@ -27,6 +27,8 @@ const TABS: { key: TabKey; labelKey: Key; icon: string }[] = [
 function Root() {
   const { ready, state } = useApp();
   const t = useT();
+  const styles = useStyles();
+  const colors = useColors();
   const [tab, setTab] = useState<TabKey>('today');
 
   if (!ready) {
@@ -85,18 +87,36 @@ function Root() {
   );
 }
 
+/* The preference is app state, so the theme can only be resolved inside the
+   provider that holds it — hence a component in between rather than wrapping
+   ThemeProvider around AppProvider. */
+function Themed() {
+  const { state } = useApp();
+  return (
+    <ThemeProvider pref={state.themePref}>
+      <Bar />
+      <Root />
+    </ThemeProvider>
+  );
+}
+
+/* The status bar is the one piece of chrome the app does not draw itself, and
+   dark glyphs on a near-black ground are simply invisible. */
+function Bar() {
+  return <StatusBar style={useTheme() === 'dark' ? 'light' : 'dark'} />;
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
       <AppProvider>
-        <StatusBar style="dark" />
-        <Root />
+        <Themed />
       </AppProvider>
     </SafeAreaProvider>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themed((colors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   screen: { flex: 1 },
   loading: {
@@ -128,4 +148,4 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: colors.good
   }
-});
+}));

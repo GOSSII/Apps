@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip, SectionTitle } from '../components/ui';
 
-import { colors, radius, space } from '../theme';
+import { radius, space, themed, useColors } from '../theme';
 import { useApp, useT, useDuration } from '../store';
 import { LANGUAGES, type Key, type Lang } from '../i18n';
 import { PRESETS, PRESET_ORDER } from '../lib/presets';
-import type { PresetKey } from '../types';
+import type { PresetKey, ThemePref } from '../types';
 import { dateInputValue, daysUntil, parseDateInput, prettyDate } from '../lib/dates';
 import {
   cancelDailyReminder, formatTime, parseTimeInput, scheduleDailyReminder
@@ -14,6 +14,12 @@ import {
 import { backupFilename, parseBackup, serialiseBackup } from '../lib/backup';
 import { canPickFiles, pickBackup, saveBackup } from '../lib/backupTransport';
 import { Confirm, Sheet } from '../components/Modals';
+
+const THEME_OPTIONS: { key: ThemePref; labelKey: Key }[] = [
+  { key: 'system', labelKey: 'themeSystem' },
+  { key: 'light', labelKey: 'themeLight' },
+  { key: 'dark', labelKey: 'themeDark' }
+];
 
 const PRESET_LABEL: Record<PresetKey, Key> = {
   open: 'presetOpen',
@@ -25,11 +31,14 @@ const PRESET_LABEL: Record<PresetKey, Key> = {
 
 export default function SettingsScreen() {
   const {
-    state, setDailyTarget, setExam, setLang, setReminder, setPomodoro, replaceAll, resetAll
+    state, setDailyTarget, setExam, setLang, setReminder, setPomodoro, setThemePref,
+    replaceAll, resetAll
   } = useApp();
   const t = useT();
   const dur = useDuration();
-  const { dailyTargetMinutes, exam, lang, reminder, pomodoro } = state;
+  const styles = useStyles();
+  const colors = useColors();
+  const { dailyTargetMinutes, exam, lang, reminder, pomodoro, themePref } = state;
 
   const [examName, setExamName] = useState(exam?.name ?? '');
   const [examDate, setExamDate] = useState(exam ? dateInputValue(exam.date) : '');
@@ -169,6 +178,22 @@ export default function SettingsScreen() {
             />
           ))}
         </View>
+      </Card>
+
+      <SectionTitle>{t('appearance')}</SectionTitle>
+      <Card>
+        <View style={styles.chipWrap}>
+          {THEME_OPTIONS.map(option => (
+            <Chip
+              key={option.key}
+              label={t(option.labelKey)}
+              selected={themePref === option.key}
+              onPress={() => setThemePref(option.key)}
+              testID={`theme-${option.key}`}
+            />
+          ))}
+        </View>
+        <Text style={styles.hint}>{t('appearanceHint')}</Text>
       </Card>
 
       <SectionTitle>{t('dailyTarget')}</SectionTitle>
@@ -383,7 +408,7 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themed((colors) => StyleSheet.create({
   content: { padding: space.lg, paddingBottom: space.xl * 2 },
   h1: { color: colors.text, fontSize: 28, fontWeight: '800', marginBottom: space.md },
   target: { color: colors.text, fontSize: 32, fontWeight: '800' },
@@ -409,4 +434,4 @@ const styles = StyleSheet.create({
   label: { color: colors.muted, fontSize: 13, marginBottom: space.sm },
   paste: { minHeight: 96, textAlignVertical: 'top' },
   footer: { color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: space.lg }
-});
+}));

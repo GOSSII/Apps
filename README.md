@@ -11,6 +11,12 @@ English and हिंदी. No login, no server, no internet needed.
 | --- | --- | --- | --- |
 | ![Today](docs/screenshots/shot-today.png) | ![Focus](docs/screenshots/shot-focus.png) | ![Round complete](docs/screenshots/shot-round-done.png) | ![Stats](docs/screenshots/shot-stats.png) |
 
+And in the dark, which is when a lot of this app actually gets used:
+
+| Today | Focus mode | Stats | Settings |
+| --- | --- | --- | --- |
+| ![Today, dark](docs/screenshots/shot-dark-today.png) | ![Focus, dark](docs/screenshots/shot-dark-focus.png) | ![Stats, dark](docs/screenshots/shot-dark-stats.png) | ![Settings, dark](docs/screenshots/shot-dark-settings.png) |
+
 ## Why this one
 
 Aspirants already track study hours — in notebooks, in Excel, in Instagram
@@ -29,6 +35,8 @@ notebook and honest about the numbers.
 - **Hindi is a first-class language,** down to the duration units (`4घं 30मि`,
   not `4h 30m`). A large share of the audience preps in Hindi medium.
 - **Offline and private.** Everything is on the phone. No account, no upload.
+- **Dark, because 1am is a normal study hour.** Light, dark, or follow the
+  phone — and both palettes are held to WCAG AA by a test, not by eye.
 
 ## Features
 
@@ -57,6 +65,7 @@ notebook and honest about the numbers.
 - Manual entry for study you did away from the phone
 - Exam name + date countdown
 - One daily reminder notification, at a time you choose
+- Light or dark, or follow the phone
 - Full English / हिंदी interface
 
 ## Run it
@@ -86,7 +95,7 @@ App.tsx                  tab shell, or focus mode when a round is running
 src/store.tsx            state, actions, persistence, useT/useDuration hooks
 src/i18n.ts              English + Hindi dictionaries
 src/types.ts             Subject, Session, ActiveTimer, Reminder, AppState
-src/theme.ts             colours and spacing
+src/theme.tsx            both palettes, the theme provider, spacing
 src/lib/storage.ts       AsyncStorage load/save
 src/lib/dates.ts         local-day keys, date parsing
 src/lib/stats.ts         day totals, streaks, subject totals
@@ -117,12 +126,19 @@ Five decisions worth knowing:
 - **A restore says what it holds before it overwrites.** The file is parsed
   first, so the confirmation names how many sittings are at stake rather than
   asking for a blind yes.
-- **Colours are computed against their own ground, not picked by eye.** The
-  palette is light — a lavender ground, white cards, royal indigo — and every
-  value clears WCAG AA where it actually sits: text 13.7:1, muted 4.6:1, accent
-  5.9:1 as text and 6.5:1 behind white button labels. The accent runs a little
-  deeper than the app it is modelled on, which puts its blue on white at display
-  sizes where the bar is lower.
+- **Colours are computed against their own ground, not picked by eye.** Both
+  palettes clear WCAG AA on every surface they are used on, and a unit test
+  fails if an edit drops one below the bar — which it did, three times, during
+  the dark-mode work. Light is a lavender ground with white cards and a royal
+  indigo accent; dark is a near-black ground with cards that are *lighter* than
+  it, because a shadow on a dark ground separates nothing.
+- **Subject colours are the hard case, and they are solved once.** A subject's
+  colour is written onto it when it is created, so it cannot follow the theme —
+  one value has to work on both grounds. The palette is the set that clears 3:1
+  on all six surfaces a subject dot can land on, which is why they are mid-tones
+  rather than the brighter set either theme would have picked alone. Subjects
+  created before dark mode existed are migrated on load and on restore, so
+  nobody is left with a dot they cannot see.
 - **The screen follows the day over, not just the data.** Day windows are
   recomputed when the local date changes, so an app left open at 00:01 shows
   the new day rather than last night's total.
@@ -147,7 +163,7 @@ Five decisions worth knowing:
 ## Testing
 
 ```sh
-npm test          # 71 unit tests (jest-expo)
+npm test          # 94 unit tests (jest-expo)
 npm run typecheck # tsc --noEmit
 ```
 
@@ -156,12 +172,13 @@ missed days and in-progress days, best-streak detection across gaps, month and
 leap-day boundaries, rejection of impossible dates like 31 February and times
 like 25:00, the timer's pause/resume/app-closed arithmetic, round crediting
 (capped at the planned length, honest when ended early), the instant a stopped
-round is dated to, preset lengths, storage upgrades from older saves, and a
+round is dated to, preset lengths, storage upgrades from older saves, a
 check that every Hindi string keeps the same `{placeholders}` as its English
-original.
+original, and both palettes measured against every ground they are painted on.
 
 The UI is additionally driven end-to-end in a browser (react-native-web +
-headless Chromium) — see `e2e/` for how to run them. 37 checks cover: a fixed round run to completion, the
+headless Chromium) — see `e2e/` for how to run them, 84 checks in all. The main
+script's 37 cover: a fixed round run to completion, the
 break that follows it, skipping a break, open-ended sittings, pause freezing
 the countdown, distraction counts surfacing in focus mode, the calendar and
 clean-round stats, a round finished last night and saved this morning landing
@@ -173,7 +190,13 @@ and persistence across a full reload.
 wipes the app, and restores from that file's text — including what happens when
 the pasted text is junk or belongs to another app.
 
-A second script, `e2e/run-midnight.js`, installs a fake clock at 23:59:30 and
+`e2e/run-theme.js` drives dark mode through the browser twice — once with the
+OS reporting light and once dark — and reads the colours the app actually
+painted rather than the ones the token file claims. It also proves the subject
+migration end to end, by seeding a subject in the old colour and checking no
+such dot reaches the screen.
+
+A further script, `e2e/run-midnight.js`, installs a fake clock at 23:59:30 and
 fast-forwards past midnight with the app left open. Without the day-rollover
 handling it fails loudly: the dial keeps yesterday's total and announces
 "Target done" for a day with nothing studied in it.

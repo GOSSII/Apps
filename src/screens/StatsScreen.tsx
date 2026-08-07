@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { Card, Chip, Dot, Empty, ProgressBar, SectionTitle } from '../components/ui';
 import { Button } from '../components/ui';
 import { Confirm, Sheet } from '../components/Modals';
-import { colors, radius, space } from '../theme';
+import { type Colors, radius, space, themed, useColors } from '../theme';
 import { useApp, useT, useDuration, useToday } from '../store';
 import { hours } from '../lib/format';
 import { dateInputValue, parseDateInput, prettyDate, weekdayLetter } from '../lib/dates';
@@ -17,6 +17,8 @@ export default function StatsScreen() {
   const { state, editSession, deleteSession } = useApp();
   const t = useT();
   const dur = useDuration();
+  const styles = useStyles();
+  const colors = useColors();
   const { sessions, subjects, dailyTargetMinutes } = state;
   const targetSeconds = dailyTargetMinutes * 60;
 
@@ -200,7 +202,7 @@ export default function StatsScreen() {
               onPress={() => setDeleting(session.id)}
               style={styles.action}
             >
-              <Text style={[styles.actionText, { color: colors.danger }]}>{t('delete')}</Text>
+              <Text style={[styles.actionText, styles.destructive]}>{t('delete')}</Text>
             </Pressable>
           </View>
         ))}
@@ -224,7 +226,7 @@ export default function StatsScreen() {
                     key={day}
                     style={[
                       styles.calCell,
-                      { backgroundColor: heatColour(share) },
+                      { backgroundColor: heatColour(share, colors) },
                       day === today && styles.calToday
                     ]}
                   />
@@ -337,15 +339,16 @@ export default function StatsScreen() {
 }
 
 /** Four steps, not a continuous ramp: the eye reads bands, not gradients. */
-function heatColour(share: number): string {
+function heatColour(share: number, colors: Colors): string {
   if (share <= 0) return colors.surface2;
-  if (share < 0.34) return 'rgba(53, 82, 204, 0.22)';
-  if (share < 0.67) return 'rgba(53, 82, 204, 0.55)';
+  if (share < 0.34) return colors.heatLow;
+  if (share < 0.67) return colors.heatMid;
   if (share < 1) return colors.accent;
   return colors.good;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.stat}>
       <Text style={styles.statValue}>{value}</Text>
@@ -354,7 +357,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = themed((colors) => StyleSheet.create({
   content: { padding: space.lg, paddingBottom: space.xl * 2 },
   h1: { color: colors.text, fontSize: 28, fontWeight: '800', marginBottom: space.md },
   statRow: { flexDirection: 'row' },
@@ -374,7 +377,9 @@ const styles = StyleSheet.create({
     height: 1,
     borderTopWidth: 1,
     borderStyle: 'dashed',
-    borderColor: colors.line,
+    /* The legend points at this line, so it has to be visible: colors.line is
+       a 1.3:1 hairline on a card and simply is not there on either ground. */
+    borderColor: colors.muted,
     marginBottom: 20
   },
   barCol: { flex: 1, alignItems: 'center' },
@@ -412,6 +417,7 @@ const styles = StyleSheet.create({
   },
   action: { paddingHorizontal: space.xs, paddingVertical: space.sm, minHeight: 44, justifyContent: 'center' },
   actionText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+  destructive: { color: colors.danger },
   showAll: { padding: space.md, alignItems: 'center' },
   showAllText: { color: colors.accentText, fontWeight: '700', fontSize: 13 },
   label: { color: colors.muted, marginBottom: space.sm, fontSize: 13 },
@@ -428,4 +434,4 @@ const styles = StyleSheet.create({
   sheetRow: { flexDirection: 'row', gap: space.md },
   chipWrapSheet: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.md },
   error: { color: colors.danger, fontSize: 13, marginBottom: space.sm }
-});
+}));
