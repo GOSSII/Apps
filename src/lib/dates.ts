@@ -16,6 +16,15 @@ export function addDays(key: string, delta: number): string {
   return dayKey(date);
 }
 
+/** Whole days from `from` to `to`; negative if `to` is earlier. */
+export function daysApart(from: string, to: string): number {
+  const [fy, fm, fd] = from.split('-').map(Number);
+  const [ty, tm, td] = to.split('-').map(Number);
+  const a = new Date(fy, fm - 1, fd).getTime();
+  const b = new Date(ty, tm - 1, td).getTime();
+  return Math.round((b - a) / 86400000);
+}
+
 /** Whole days from today until the given day; negative once it has passed. */
 export function daysUntil(key: string): number {
   const [y, m, d] = key.split('-').map(Number);

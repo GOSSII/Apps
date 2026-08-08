@@ -80,6 +80,16 @@ a real finding — the browser could not have caught it.
 | Switch to हिंदी and look at it again | The letters are र/सो/मं/बु/गु/शु/श, and the two-character ones are not clipped |
 | Open Stats on a phone with study only from months ago | The grid says it is empty rather than showing 84 identical squares |
 
+### Subjects
+
+| Do this | Expect |
+| --- | --- |
+| Tap a subject in the list | Its own screen, leading with how long since you last studied it |
+| Tap the back link | The list, with the tab bar still where it was |
+| Open a subject on a 320dp screen | The three stats fit on one line without clipping |
+| Open one with months of history | The 30-day chart is readable, and the date labels do not overlap |
+| Switch to हिंदी and open one | "पिछली बार 9 दिन पहले पढ़ा" reads correctly, and the back link is translated |
+
 ### First run
 
 | Do this | Expect |

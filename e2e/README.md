@@ -18,6 +18,7 @@ node e2e/run-backup.js     # 14 checks: saving a file, and restoring from one
 node e2e/run-theme.js      # 15 checks: dark mode, and following the OS
 node e2e/run-celebrate.js  # 22 checks: the target celebration, and its silence
 node e2e/run-onboarding.js # 34 checks: first run, and everyone it must skip
+node e2e/run-subject.js    # 16 checks: one subject on its own screen
 ```
 
 `run-a11y.js` reads the rendered DOM. react-native-web maps accessibility
@@ -31,6 +32,11 @@ of `getComputedStyle` rather than trusting the token file — the palette itself
 has unit tests, so what this covers is the wiring. It is also where the subject
 colour migration is proved end to end: the seed carries a subject in the old
 flat indigo, and the check is that no such dot survives to the screen.
+
+`run-subject.js` exists mostly for one number. "Last studied N days ago" was
+first computed from the chart's own 30-day array, so a subject last touched 60
+days ago came back as `-1` from the index lookup and rendered a plausible,
+wrong "30 days ago". The check that caught it seeds exactly that case.
 
 `run-onboarding.js` spends most of its checks on who must *not* see the flow:
 someone upgrading from a save that predates it, someone who skipped it, someone
@@ -48,7 +54,7 @@ to dismiss.
 `run-midnight.js` installs a fake clock at 23:59:30 and fast-forwards past
 midnight with the app left open — the way an aspirant actually uses it at 1am.
 
-All seven scripts expect a Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
+All eight scripts expect a Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
 Change `executablePath` at the top of each file to point at your own, or drop
 the option entirely if you install full `playwright` instead of `playwright-core`.
 
