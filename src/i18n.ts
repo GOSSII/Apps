@@ -141,6 +141,20 @@ const en = {
   examNeedsName: 'Give the exam a name',
   examBadDate: 'Use a date like 24/05/2027',
   remove: 'Remove',
+  // subject detail
+  subjectNeverStudied: 'Not started yet',
+  subjectStudiedToday: 'Studied today',
+  subjectStudiedYesterday: 'Last studied yesterday',
+  subjectStudiedDaysAgo: 'Last studied {n} days ago',
+  subjectLast30: 'Last 30 days',
+  subjectThisWeek: 'This week',
+  subjectAllTime: 'All time',
+  subjectShareLabel: 'Share of week',
+  subjectSittings: 'Sittings',
+  subjectNoSittings: 'Nothing recorded for this subject yet.',
+  subjectBack: 'All subjects',
+  subjectOpen: 'Open {name}',
+
   // onboarding
   obWelcomeTitle: 'Padhai Streak',
   obWelcomeBody: 'Start the clock for a subject. At 11pm this app answers one question: did you hit today’s target, and is your streak alive?',
@@ -344,6 +358,20 @@ const hi: Record<Key, string> = {
   examNeedsName: 'परीक्षा का नाम लिखें',
   examBadDate: '24/05/2027 जैसी तारीख लिखें',
   remove: 'हटाएँ',
+  // subject detail
+  subjectNeverStudied: 'अभी शुरू नहीं किया',
+  subjectStudiedToday: 'आज पढ़ा',
+  subjectStudiedYesterday: 'पिछली बार कल पढ़ा',
+  subjectStudiedDaysAgo: 'पिछली बार {n} दिन पहले पढ़ा',
+  subjectLast30: 'पिछले 30 दिन',
+  subjectThisWeek: 'इस हफ़्ते',
+  subjectAllTime: 'कुल',
+  subjectShareLabel: 'हफ़्ते का हिस्सा',
+  subjectSittings: 'बैठकें',
+  subjectNoSittings: 'इस विषय का अभी कोई रिकॉर्ड नहीं है।',
+  subjectBack: 'सभी विषय',
+  subjectOpen: '{name} खोलें',
+
   // onboarding
   obWelcomeTitle: 'Padhai Streak',
   obWelcomeBody: 'किसी विषय की घड़ी शुरू कीजिए। रात 11 बजे यह ऐप एक ही सवाल का जवाब देता है — आज का लक्ष्य पूरा हुआ या नहीं, और स्ट्रीक ज़िंदा है या नहीं।',

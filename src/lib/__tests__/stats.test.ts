@@ -1,5 +1,9 @@
-import { addDays, dayKey, daysUntil, parseDateInput, weekdayLetter } from '../dates';
-import { bestStreak, currentStreak, dayTotals, recentDays } from '../stats';
+import {
+  addDays, dayKey, daysApart, daysUntil, parseDateInput, weekdayLetter
+} from '../dates';
+import {
+  bestStreak, currentStreak, dayTotals, dayTotalsFor, lastStudied, recentDays
+} from '../stats';
 import { clockDuration, humanDuration } from '../format';
 import type { Session } from '../../types';
 
@@ -190,5 +194,76 @@ describe('weekdayLetter', () => {
       const letters = new Set(weeks.map(w => weekdayLetter(w[row], 'hi')));
       expect(letters.size).toBe(1);
     }
+  });
+});
+
+describe('lastStudied', () => {
+  const sessions = (rows: [string, string][]): Session[] =>
+    rows.map(([subjectId, day], i) => ({
+      id: 'x' + i, subjectId, day, seconds: 3600, endedAt: i
+    }));
+
+  it('finds the most recent day, not the last one in the array', () => {
+    // Sessions are appended in save order, which is not date order once
+    // anything has been edited or backfilled.
+    const list = sessions([
+      ['s1', '2026-08-05'],
+      ['s1', '2026-08-09'],
+      ['s1', '2026-08-01']
+    ]);
+    expect(lastStudied(list, 's1')).toBe('2026-08-09');
+  });
+
+  it('ignores other subjects', () => {
+    const list = sessions([['s1', '2026-08-01'], ['s2', '2026-08-20']]);
+    expect(lastStudied(list, 's1')).toBe('2026-08-01');
+  });
+
+  it('is null for a subject never studied', () => {
+    expect(lastStudied(sessions([['s1', '2026-08-01']]), 's2')).toBeNull();
+  });
+
+  it('is null when there is nothing at all', () => {
+    expect(lastStudied([], 's1')).toBeNull();
+  });
+});
+
+describe('dayTotalsFor', () => {
+  it('adds up a single subject by day', () => {
+    const list: Session[] = [
+      { id: 'a', subjectId: 's1', day: '2026-08-01', seconds: 3600, endedAt: 1 },
+      { id: 'b', subjectId: 's1', day: '2026-08-01', seconds: 1800, endedAt: 2 },
+      { id: 'c', subjectId: 's2', day: '2026-08-01', seconds: 9999, endedAt: 3 }
+    ];
+    expect(dayTotalsFor(list, 's1')).toEqual({ '2026-08-01': 5400 });
+  });
+
+  it('is empty for a subject with nothing', () => {
+    expect(dayTotalsFor([], 's1')).toEqual({});
+  });
+});
+
+describe('daysApart', () => {
+  it('counts whole days forward', () => {
+    expect(daysApart('2026-08-01', '2026-08-10')).toBe(9);
+  });
+
+  it('is zero for the same day', () => {
+    expect(daysApart('2026-08-01', '2026-08-01')).toBe(0);
+  });
+
+  it('goes negative backwards', () => {
+    expect(daysApart('2026-08-10', '2026-08-01')).toBe(-9);
+  });
+
+  it('crosses months and a leap day', () => {
+    expect(daysApart('2028-02-27', '2028-03-01')).toBe(3);
+    expect(daysApart('2026-01-31', '2026-02-01')).toBe(1);
+  });
+
+  it('survives a DST-style jump without drifting a day', () => {
+    // Rounding, not flooring: a 23- or 25-hour day must still be one day.
+    expect(daysApart('2026-03-28', '2026-03-29')).toBe(1);
+    expect(daysApart('2026-10-24', '2026-10-25')).toBe(1);
   });
 });

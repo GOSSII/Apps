@@ -50,6 +50,28 @@ export function recentDays(count: number): string[] {
   return Array.from({ length: count }, (_, i) => addDays(today, i - (count - 1)));
 }
 
+/** The most recent day a subject was studied, or null if it never was.
+ *  Answers the question a subject list cannot: which one have I been quietly
+ *  avoiding? A big all-time total hides a fortnight of neglect. */
+export function lastStudied(sessions: Session[], subjectId: string): string | null {
+  let latest: string | null = null;
+  for (const s of sessions) {
+    if (s.subjectId !== subjectId) continue;
+    if (latest === null || s.day > latest) latest = s.day;
+  }
+  return latest;
+}
+
+/** Day totals for one subject only. */
+export function dayTotalsFor(sessions: Session[], subjectId: string): DayTotals {
+  const out: DayTotals = {};
+  for (const s of sessions) {
+    if (s.subjectId !== subjectId) continue;
+    out[s.day] = (out[s.day] || 0) + s.seconds;
+  }
+  return out;
+}
+
 export function totalsBySubject(sessions: Session[], since?: string): Record<string, number> {
   const out: Record<string, number> = {};
   for (const s of sessions) {

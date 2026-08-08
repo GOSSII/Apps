@@ -4,7 +4,9 @@ import { Button, Card, Chip, Dot, Empty, SectionTitle } from '../components/ui';
 import { Confirm, Sheet } from '../components/Modals';
 import { radius, space, themed, useColors } from '../theme';
 import { useApp, useT, useDuration } from '../store';
-import { totalsBySubject } from '../lib/stats';
+import { lastStudied, totalsBySubject } from '../lib/stats';
+import { dayKey, daysApart } from '../lib/dates';
+import SubjectDetailScreen from './SubjectDetailScreen';
 
 /* Covers the common exam tracks without making the user type on a phone
    keyboard on day one. */
@@ -24,6 +26,7 @@ export default function SubjectsScreen() {
   const { subjects, sessions } = state;
 
   const [name, setName] = useState('');
+  const [open, setOpen] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
 
@@ -38,6 +41,24 @@ export default function SubjectsScreen() {
   const submit = () => {
     addSubject(name);
     setName('');
+  };
+
+  /* A subject can be deleted from the list while its own screen is open in
+     another render; falling back to the list beats rendering a ghost. */
+  const opened = subjects.find(s => s.id === open) ?? null;
+  if (opened) {
+    return <SubjectDetailScreen subject={opened} onBack={() => setOpen(null)} />;
+  }
+
+  const today = dayKey();
+  /* The number that changes behaviour is not the total — it is how long a
+     subject has been left alone. */
+  const gapLine = (id: string): string => {
+    const last = lastStudied(sessions, id);
+    if (!last) return t('subjectNeverStudied');
+    const n = daysApart(last, today);
+    if (n === 0) return t('subjectStudiedToday');
+    return n === 1 ? t('subjectStudiedYesterday') : t('subjectStudiedDaysAgo', { n });
   };
 
   return (
@@ -79,12 +100,20 @@ export default function SubjectsScreen() {
           {subjects.map((subject, i) => (
             <View key={subject.id} style={[styles.row, i > 0 && styles.divider]}>
               <Dot color={subject.color} />
-              <View style={styles.flex}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('subjectOpen', { name: subject.name })}
+                onPress={() => setOpen(subject.id)}
+                testID={`open-${subject.id}`}
+                style={styles.flex}
+              >
                 <Text style={styles.name}>{subject.name}</Text>
                 <Text style={styles.meta}>
                   {t('allTimeSuffix', { time: dur(allTime[subject.id] || 0) })}
+                  {' · '}
+                  {gapLine(subject.id)}
                 </Text>
-              </View>
+              </Pressable>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${t('rename')} — ${subject.name}`}
