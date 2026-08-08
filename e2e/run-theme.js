@@ -66,7 +66,10 @@ const groundOf = page => page.evaluate(() => {
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
     await page.goto(BASE, { waitUntil: 'domcontentloaded' });
-    await page.getByText('Today', { exact: true }).first().waitFor({ timeout: 180000 });
+    /* A blank profile is a first run now, so wait for whichever of the two
+       the app legitimately opens on. */
+    await page.locator('[data-testid="ob-title"], [data-testid="tab-today"]')
+      .first().waitFor({ timeout: 180000 });
     return { ctx, page, errors };
   };
 

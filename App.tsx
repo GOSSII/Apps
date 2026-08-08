@@ -11,6 +11,7 @@ import StatsScreen from './src/screens/StatsScreen';
 import SubjectsScreen from './src/screens/SubjectsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import FocusScreen from './src/screens/FocusScreen';
+import OnboardingScreen from './src/screens/OnboardingScreen';
 import { Celebration } from './src/components/Celebration';
 import { ThemeProvider, space, themed, useColors, useTheme } from './src/theme';
 
@@ -37,6 +38,16 @@ function Root() {
       <View style={styles.loading}>
         <ActivityIndicator color={colors.accent} />
       </View>
+    );
+  }
+
+  /* First run, before anything else: the tab bar would only offer places to
+     get lost in before the app knows what the user is even studying. */
+  if (!state.onboarded) {
+    return (
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+        <OnboardingScreen />
+      </SafeAreaView>
     );
   }
 

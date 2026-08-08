@@ -82,4 +82,7 @@ export type AppState = {
   /** The last day whose target-hit was celebrated, so reopening the app that
    *  evening does not replay it. */
   celebratedDay: string | null;
+  /** False only on a genuinely fresh install — an existing save means an
+   *  existing user, who must not be walked through a setup they already did. */
+  onboarded: boolean;
 };

@@ -80,6 +80,18 @@ a real finding — the browser could not have caught it.
 | Switch to हिंदी and look at it again | The letters are र/सो/मं/बु/गु/शु/श, and the two-character ones are not clipped |
 | Open Stats on a phone with study only from months ago | The grid says it is empty rather than showing 84 identical squares |
 
+### First run
+
+| Do this | Expect |
+| --- | --- |
+| Install fresh and open it | Setup, not an empty dashboard — and no tab bar to wander into yet |
+| Pick हिंदी on step one | The rest of the flow is in Hindi immediately, including the buttons |
+| Type an exam date with the phone keyboard | The field takes 24/05/2027 and the countdown appears on the home screen afterwards |
+| Tap Skip on any step | Straight into the app, on a 4h default target, and it never comes back |
+| Kill the app mid-setup and reopen | Setup resumes from the start — nothing half-saved |
+| Upgrade over an existing install | No setup at all; your subjects and history are untouched |
+| Settings → Erase all data | The app empties but does **not** re-run setup |
+
 ### The target celebration
 
 The rules are unit-tested and driven in a browser. What is left for a phone is
@@ -121,6 +133,8 @@ left for a phone is the things a contrast ratio cannot tell you.
 For anything that differs, the useful details are: the device and OS version,
 whether it was Expo Go or a build, and what happened instead. Most of these
 map to a single file — notifications to `src/lib/notifications.ts`,
-distraction counting to the `AppState` listener in `src/store.tsx`, backup to
+distraction counting to the `AppState` listener in `src/store.tsx`, first run
+to `src/screens/OnboardingScreen.tsx` (and the `onboarded` rule in
+`src/lib/storage.ts`), backup to
 `src/lib/backupTransport.ts`, and the celebration to `src/lib/celebrate.ts`
 (when) plus `src/components/Celebration.tsx` (what it looks like).

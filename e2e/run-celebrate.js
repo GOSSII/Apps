@@ -88,7 +88,10 @@ for (let i = 0; i < 6; i++) run[i + 1] = TARGET;
 
   console.log('bundling…');
   await page.goto(BASE, { waitUntil: 'domcontentloaded' });
-  await page.getByText('Today', { exact: true }).first().waitFor({ timeout: 180000 });
+  /* A blank profile is a first run now, so wait for whichever of the two
+     the app legitimately opens on. */
+  await page.locator('[data-testid="ob-title"], [data-testid="tab-today"]')
+    .first().waitFor({ timeout: 180000 });
 
   // ---- a day short of the target is not a celebration ----
   await load(seed({ 0: TARGET - 600 }));

@@ -14,9 +14,10 @@ npm install --no-save playwright-core
 node e2e/run-app.js        # 43 checks: rounds, breaks, stats, editing, Hindi
 node e2e/run-midnight.js   #  9 checks: the day rollover, on a faked clock
 node e2e/run-a11y.js       # 12 checks: names, roles, states, touch targets
-node e2e/run-backup.js     # 12 checks: saving a file, and restoring from one
+node e2e/run-backup.js     # 14 checks: saving a file, and restoring from one
 node e2e/run-theme.js      # 15 checks: dark mode, and following the OS
 node e2e/run-celebrate.js  # 22 checks: the target celebration, and its silence
+node e2e/run-onboarding.js # 34 checks: first run, and everyone it must skip
 ```
 
 `run-a11y.js` reads the rendered DOM. react-native-web maps accessibility
@@ -31,6 +32,12 @@ has unit tests, so what this covers is the wiring. It is also where the subject
 colour migration is proved end to end: the seed carries a subject in the old
 flat indigo, and the check is that no such dot survives to the screen.
 
+`run-onboarding.js` spends most of its checks on who must *not* see the flow:
+someone upgrading from a save that predates it, someone who skipped it, someone
+who erased their data, and anyone reopening the app. It also covers the case
+`run-backup.js` now leans on — a wiped profile really is a fresh install, so
+restoring onto a new phone runs through setup first.
+
 `run-celebrate.js` is mostly about the celebration *not* happening. Firing is
 one check; the rest are the ways it must stay quiet — a day still short of the
 target, a day already celebrated, a reload that evening, a state restored from
@@ -41,7 +48,7 @@ to dismiss.
 `run-midnight.js` installs a fake clock at 23:59:30 and fast-forwards past
 midnight with the app left open — the way an aspirant actually uses it at 1am.
 
-All six scripts expect a Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
+All seven scripts expect a Chromium at `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
 Change `executablePath` at the top of each file to point at your own, or drop
 the option entirely if you install full `playwright` instead of `playwright-core`.
 

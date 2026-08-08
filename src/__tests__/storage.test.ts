@@ -62,3 +62,34 @@ describe('loadState', () => {
     expect((await loadState()).active).toBeNull();
   });
 });
+
+describe('onboarding', () => {
+  it('a genuinely fresh install has not been onboarded', async () => {
+    const state = await loadState();
+    expect(state.onboarded).toBe(false);
+  });
+
+  it('an existing save counts as onboarded, even without the flag', async () => {
+    /* The alternative greets someone who has been using the app for weeks
+       with a first-run wizard, on an upgrade they did not ask for. */
+    await AsyncStorage.setItem(KEY, JSON.stringify({
+      v: 1,
+      subjects: [{ id: 's1', name: 'Physics', color: '#5B78E0' }],
+      sessions: [{ id: 'a', subjectId: 's1', day: '2026-08-01', seconds: 3600, endedAt: 1 }]
+    }));
+    const state = await loadState();
+    expect(state.onboarded).toBe(true);
+  });
+
+  it('an empty-but-present save also counts — they opened it before', async () => {
+    await AsyncStorage.setItem(KEY, JSON.stringify({ v: 1, subjects: [], sessions: [] }));
+    expect((await loadState()).onboarded).toBe(true);
+  });
+
+  it('respects the flag once it is written', async () => {
+    await AsyncStorage.setItem(KEY, JSON.stringify({
+      v: 1, subjects: [], sessions: [], onboarded: false
+    }));
+    expect((await loadState()).onboarded).toBe(false);
+  });
+});
