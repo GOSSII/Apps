@@ -154,9 +154,18 @@ and payments interleaved, balance due, record-payment action.
 
 **8. Audit log viewer** — admin only, filterable, before/after diff view.
 
-**9. Polish** — CSV import/export, barcode scan for SKU, offline-tolerant forms.
+**9. Exports — PDF and Excel.** Every report screen carries PDF / XLS export
+buttons: the stock report, the purchase register (date range), each vendor's
+ledger statement (share with the vendor on WhatsApp, or hand to the
+accountant), the dues summary, and the activity log. PDFs are generated
+server-side with `@react-pdf/renderer` (pure JS, works on Vercel serverless —
+no headless browser needed); Excel files with `exceljs`, real .xlsx with
+typed number columns so totals stay summable in a spreadsheet. Exports are
+attributed and logged like every other action.
 
-Phases 1–5 produce a usable app. 6–9 are the review-and-oversight layer.
+**10. Polish** — CSV import, barcode scan for SKU, offline-tolerant forms.
+
+Phases 1–5 produce a usable app. 6–10 are the review-and-oversight layer.
 
 ## Deliberately out of scope for v1
 
