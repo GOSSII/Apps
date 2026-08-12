@@ -42,12 +42,34 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  purchaseLots   PurchaseLot[]
-  movements      StockMovement[]
-  sellingPrices  SellingPrice[]
-  auditLogs      AuditLog[]
-  vendorPayments VendorPayment[]
-  listings       Listing[]
+  purchaseLots      PurchaseLot[]
+  movements         StockMovement[]
+  sellingPrices     SellingPrice[]
+  auditLogs         AuditLog[]
+  vendorPayments    VendorPayment[]
+  listings          Listing[]
+  pushSubscriptions PushSubscription[]
+}
+
+// A device the user allowed push notifications on (Web Push / VAPID). The
+// events themselves are not a separate table: AuditLog is already the
+// complete stream of who-did-what, so realtime in-app notifications are a
+// Supabase Realtime subscription on audit_logs, and closed-app delivery is a
+// Web Push fan-out to these endpoints. One event source, two delivery paths —
+// a second "notifications" table would just drift from the log.
+model PushSubscription {
+  id         String   @id @default(cuid())
+  userId     String
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 enum PaymentMode {

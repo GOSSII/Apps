@@ -102,6 +102,26 @@ that depends on the author remembering to call it is a log with holes in it.
 Captures actor, action, entity, entity id, before/after JSON, IP, user agent,
 timestamp. Admin-only viewer with filters by user, date range and entity.
 
+## Realtime notifications for the owner
+
+When staff records anything that moves money or stock — a purchase, a vendor
+payment, a stock adjustment, an edit to an existing entry — the owner hears
+about it immediately, two ways from one event source:
+
+- **In-app, live:** the Overview banner and the bell's unread count update
+  the moment it happens, via a Supabase Realtime subscription on
+  `audit_logs`. No polling, no refresh.
+- **App closed:** Web Push (VAPID) to every device the owner has allowed —
+  works on Android Chrome and on iOS 16.4+ once the PWA is installed to the
+  home screen. `PushSubscription` stores the endpoints; delivery failures
+  prune stale ones.
+
+Deliberately no separate notifications table: `AuditLog` is already the
+complete stream, so notifications are a filtered view of it plus a per-user
+last-seen cursor — the log and the bell can never disagree. Which event types
+notify (and whether staff get any, e.g. low-stock alerts) becomes a settings
+screen later; v1 notifies the owner about everything staff do.
+
 ## Phases
 
 **1. Skeleton** — Next.js + TS + Tailwind + Prisma, Supabase project, PWA
