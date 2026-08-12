@@ -82,9 +82,25 @@ manifest and icons, CI running lint + typecheck + tests.
 **2. Auth + roles** — login, session middleware, admin-creates-user flow, route
 guards, RLS policies.
 
-**3. Masters** — vendor CRUD, product CRUD with image upload. Phone camera
-photos are 3–5 MB; resize to ~1200px client-side before upload or the app is
-unusable on mobile data.
+**3. Masters** — vendor CRUD, and a dedicated add-product screen: photo
+(camera or gallery), title, SKU, optional ASIN, category, pieces per carton,
+reorder level. Phone camera photos are 3–5 MB; resize to ~1200px client-side
+before upload or the app is unusable on mobile data.
+
+Purchases happen in cartons: the purchase form takes cartons × pcs-per-carton
+(pre-filled from the product, editable per purchase) and computes total pieces
+and total cost on screen before save. `quantity` on the lot is always the
+canonical piece count; the carton breakdown is snapshotted on the lot because
+a product's carton size can change later. Loose products use carton size 1.
+
+Per-vendor page: totals bought (by product, with lot count and average cost),
+the money ledger (purchases and payments interleaved), balance due, and a
+record-payment action.
+
+Role gating of screens is deliberately deferred: v1 shows every screen to
+every signed-in user, and which screens become admin-only is decided after the
+design is settled. The audit log records everything regardless of who can see
+it.
 
 **4. Purchases** — the primary screen. Bottom-sheet form, ~5 fields, vendor
 picker with search, `inputMode="decimal"` on cost, date defaults to today.

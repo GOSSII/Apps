@@ -102,6 +102,10 @@ model Product {
   imageUrl     String?
   category     String?
   unit         String   @default("pcs")
+  // Default pieces per carton for this product. Purchases are usually made in
+  // cartons (10 cartons × 100 pcs = 1,000 pcs); this pre-fills the purchase
+  // form. 1 means the product is bought loose.
+  unitsPerCarton Int    @default(1)
   reorderLevel Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
@@ -121,7 +125,13 @@ model PurchaseLot {
   id           String   @id @default(cuid())
   productId    String
   vendorId     String
+  // quantity is always the canonical total in pieces. When the purchase was
+  // made in cartons, cartons × unitsPerCarton is snapshotted too (the
+  // product's carton size can change later; what this lot was bought as
+  // cannot), and quantity = cartons * unitsPerCarton.
   quantity     Int
+  cartons        Int?
+  unitsPerCarton Int?
   unitCost     Decimal  @db.Decimal(12, 2)
   purchaseDate DateTime
   invoiceNo    String?
