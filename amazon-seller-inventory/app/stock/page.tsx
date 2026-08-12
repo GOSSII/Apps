@@ -4,6 +4,7 @@ import { inr } from "@/lib/format";
 import { stockRows, stockStatus } from "@/lib/queries";
 import { Chip, Header } from "@/components/ui";
 import { IconSearch } from "@/components/icons";
+import { ExportChips } from "@/components/export-chips";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function StockPage({
     <main>
       <Header
         title="Stock"
-        sub={`${totalPcs.toLocaleString("en-IN")} pcs on hand · ${rows.length} products`}
+        sub={<>{totalPcs.toLocaleString("en-IN")} pcs on hand · {rows.length} products · <ExportChips base="/exports/stock" /></>}
         user={user}
       />
       <form className="mb-3">

@@ -4,6 +4,8 @@ import { currentUser } from "@/lib/auth";
 import { inr, relTime } from "@/lib/format";
 import { stockRows, stockStatus, vendorBalances, monthSpend } from "@/lib/queries";
 import { Chip, Header, Panel } from "@/components/ui";
+import { AutoRefresh } from "@/components/refresh";
+import { auditLabel, BANNER_PRIORITY } from "@/lib/audit-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +16,11 @@ export default async function Overview() {
     vendorBalances(),
     monthSpend(0),
     monthSpend(1),
-    db.auditLog.findFirst({ orderBy: { createdAt: "desc" }, include: { actor: true } }),
+    db.auditLog.findFirst({
+      where: { entity: { in: BANNER_PRIORITY } },
+      orderBy: { createdAt: "desc" },
+      include: { actor: true },
+    }),
     db.auditLog.count({ where: { createdAt: { gte: new Date(Date.now() - 86_400_000) } } }),
     db.purchaseLot.findMany({
       orderBy: { purchaseDate: "desc" },
@@ -33,6 +39,7 @@ export default async function Overview() {
 
   return (
     <main>
+      <AutoRefresh />
       <Header
         title={`Hello, ${user.name}!`}
         sub="Keep an eye on the money with care."
@@ -49,8 +56,8 @@ export default async function Overview() {
         </p>
         {latest ? (
           <p className="mt-1 text-[0.95rem] font-bold">
-            {latest.actor?.name ?? "System"} · {latest.action.toLowerCase()}{" "}
-            <em className="not-italic text-lime">{latest.entity}</em>
+            {latest.actor?.name ?? "System"} {auditLabel(latest).verb}{" "}
+            <em className="not-italic text-lime">{auditLabel(latest).noun}</em>
           </p>
         ) : (
           <p className="mt-1 text-[0.95rem] font-bold">

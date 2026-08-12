@@ -113,6 +113,31 @@ export async function createPayment(formData: FormData) {
   redirect(`/vendors/${vendorId}`);
 }
 
+export async function acceptInvite(formData: FormData) {
+  const token = String(formData.get("token") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const invite = await db.invite.findUnique({ where: { token } });
+  if (!invite || invite.status !== "PENDING") throw new Error("Invite is not valid");
+  if (!name) throw new Error("Name is required");
+
+  setActor(invite.invitedById);
+  const user = await db.user.upsert({
+    where: { email: invite.email },
+    update: { isActive: true, name },
+    // authId is a dev placeholder until Supabase OAuth provides the real one.
+    create: { authId: `dev-${invite.email}`, email: invite.email, name, role: invite.role, isActive: true },
+  });
+  await db.invite.update({
+    where: { id: invite.id },
+    data: { status: "ACCEPTED", acceptedAt: new Date() },
+  });
+
+  const store = await cookies();
+  store.set("acting-user", user.id, { httpOnly: true, sameSite: "lax", path: "/" });
+  revalidatePath("/team");
+  redirect("/stock");
+}
+
 export async function createInvite(formData: FormData) {
   const user = await asActor();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();

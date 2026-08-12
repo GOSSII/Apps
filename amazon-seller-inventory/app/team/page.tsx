@@ -47,7 +47,7 @@ export default async function TeamPage() {
               <div>
                 <p className="text-[0.8rem] font-bold">{i.email}</p>
                 <p className="text-[0.66rem] text-muted">
-                  invited {relDate(i.createdAt).toLowerCase()} · share: /join/{i.token.slice(0, 8)}…
+                  invited {relDate(i.createdAt).toLowerCase()} · share link: <span className="num">/join/{i.token}</span>
                 </p>
               </div>
               <Chip tone="low">Invited</Chip>

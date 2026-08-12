@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { inr, relDate } from "@/lib/format";
 import { createPayment } from "@/app/actions";
 import { Field, Header, Panel, SaveButton, inputCls } from "@/components/ui";
+import { ExportChips } from "@/components/export-chips";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +80,7 @@ export default async function VendorPage({ params }: { params: Promise<{ id: str
         ))}
       </Panel>
 
-      <Panel title="Ledger · purchases and payments">
+      <Panel title={<>Ledger · purchases and payments <ExportChips base={`/exports/vendor?id=${vendor.id}`} /></>}>
         {ledger.slice(0, 8).map((e, i) => (
           <div key={i} className="flex items-center justify-between border-t border-line py-2 first:border-t-0">
             <div>

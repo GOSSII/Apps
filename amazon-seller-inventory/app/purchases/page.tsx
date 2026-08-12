@@ -3,6 +3,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { inr, relDate } from "@/lib/format";
 import { Header } from "@/components/ui";
+import { ExportChips } from "@/components/export-chips";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function PurchasesPage() {
 
   return (
     <main>
-      <Header title="Purchases" sub={`${lots.length} recent lots`} user={user} />
+      <Header title="Purchases" sub={<>{lots.length} recent lots · <ExportChips base="/exports/purchases" /></>} user={user} />
       <Link
         href="/purchases/new"
         className="pressable mb-3 block w-full rounded-xl bg-forest py-3 text-center font-heading text-[0.95rem] font-extrabold text-forest-ink shadow-lg shadow-forest/25"
