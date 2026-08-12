@@ -1,21 +1,95 @@
 @import "tailwindcss";
 
+/* Forest & Lime — the approved design system. Base tokens carry both themes;
+   @theme inline maps them to Tailwind color utilities (bg-forest, text-lime…). */
 :root {
-  --background: #fafaf9;
-  --foreground: #1c1917;
+  --bg: #fbfcfa;
+  --card: #ffffff;
+  --ink: #14201a;
+  --muted: #75817a;
+  --line: #e7eae7;
+  --forest: #1e3b2c;
+  --forest-2: #2c5540;
+  --forest-ink: #ffffff;
+  --forest-muted: #9db8a9;
+  --lime: #b5e04c;
+  --lime-deep: #86b422;
+  --lime-wash: #eef8d8;
+  --lime-ink: #3c5c1c;
+  --ok: #3c7a1e;
+  --ok-wash: #eef8d8;
+  --warn: #b45309;
+  --warn-wash: #fdf0da;
+  --crit: #dc2626;
+  --crit-wash: #fce9e9;
+  --nav-idle: #8aa896;
 }
-
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0c0a09;
-    --foreground: #e7e5e4;
+    --bg: #0e1512;
+    --card: #17211b;
+    --ink: #edf3ee;
+    --muted: #93a59a;
+    --line: #263a2e;
+    --forest: #1c3527;
+    --forest-2: #2a4d39;
+    --forest-ink: #edf3ee;
+    --forest-muted: #8fac9b;
+    --lime: #b5e04c;
+    --lime-deep: #9ccb3a;
+    --lime-wash: #22331a;
+    --lime-ink: #c9e97a;
+    --ok: #7fc95e;
+    --ok-wash: #1c3320;
+    --warn: #e0a44e;
+    --warn-wash: #33290f;
+    --crit: #f87171;
+    --crit-wash: #3a1d1d;
+    --nav-idle: #6e8477;
   }
 }
 
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-forest: var(--forest);
+  --color-forest-2: var(--forest-2);
+  --color-forest-ink: var(--forest-ink);
+  --color-forest-muted: var(--forest-muted);
+  --color-lime: var(--lime);
+  --color-lime-deep: var(--lime-deep);
+  --color-lime-wash: var(--lime-wash);
+  --color-lime-ink: var(--lime-ink);
+  --color-ok: var(--ok);
+  --color-ok-wash: var(--ok-wash);
+  --color-warn: var(--warn);
+  --color-warn-wash: var(--warn-wash);
+  --color-crit: var(--crit);
+  --color-crit-wash: var(--crit-wash);
+  --color-nav-idle: var(--nav-idle);
+  --font-heading: var(--font-sora), "Segoe UI", system-ui, sans-serif;
+  --font-body: var(--font-inter), "Segoe UI", system-ui, sans-serif;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  /* One-thumb use on a phone is the primary case; don't let iOS zoom the
-     viewport on input focus by keeping form text at 16px minimum. */
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
   -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, h4 { font-family: var(--font-heading); }
+
+/* Rupee amounts are always monospaced, always tabular. */
+.num {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pressable { transition: transform 120ms ease; }
+  .pressable:active { transform: scale(0.97); }
 }

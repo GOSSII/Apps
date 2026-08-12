@@ -122,6 +122,22 @@ last-seen cursor — the log and the bell can never disagree. Which event types
 notify (and whether staff get any, e.g. low-stock alerts) becomes a settings
 screen later; v1 notifies the owner about everything staff do.
 
+## Backups
+
+Three layers, because "the data is in the cloud" is not a backup strategy:
+
+1. **Nightly encrypted `pg_dump`** via GitHub Actions (03:00 IST), AES-256
+   encrypted before it leaves the runner, kept 90 days as workflow artifacts.
+   Works on the Supabase free tier, which has no automated backups of its own.
+2. **Supabase daily backups / PITR** once the project upgrades to a paid
+   tier — push-button restore for the common case.
+3. **The ledger property**: because stock and money are append-only ledgers
+   with an audit log, a restore never silently loses "the current number" —
+   every derived value can be recomputed from the entries.
+
+Restore drill (documented, not just hoped): download artifact → `gpg -d` →
+`pg_restore` into a fresh database → point the app at it.
+
 ## Phases
 
 **1. Skeleton** — Next.js + TS + Tailwind + Prisma, Supabase project, PWA

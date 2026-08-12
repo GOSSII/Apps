@@ -1,0 +1,38 @@
+# Nightly database backup. Dormant while this folder is staged inside
+# gossii/apps (GitHub ignores nested .github directories); it activates when
+# the app moves to its own repository and these secrets are set:
+#   DATABASE_URL    — the Supabase Postgres connection string
+#   BACKUP_PASSPHRASE — used to encrypt the dump before it leaves the runner
+#
+# Why this exists even though Supabase is managed: the free tier has NO
+# automated backups, and even paid daily backups don't protect against
+# "someone deleted the project". An encrypted dump in GitHub's artifact
+# storage every night is cheap insurance the owner controls.
+name: Nightly backup
+
+on:
+  schedule:
+    - cron: "30 21 * * *" # 03:00 IST, after the workday's entries
+  workflow_dispatch: {}
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump and encrypt
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          sudo apt-get -qq update && sudo apt-get -qq install -y postgresql-client
+          STAMP=$(date -u +%Y-%m-%d)
+          pg_dump --no-owner --format=custom "$DATABASE_URL" > "stockbook-$STAMP.dump"
+          gpg --batch --symmetric --cipher-algo AES256 \
+              --passphrase "$BACKUP_PASSPHRASE" "stockbook-$STAMP.dump"
+          rm "stockbook-$STAMP.dump"
+      - name: Keep 90 days
+        uses: actions/upload-artifact@v4
+        with:
+          name: stockbook-backup-${{ github.run_id }}
+          path: "*.dump.gpg"
+          retention-days: 90
