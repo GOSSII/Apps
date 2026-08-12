@@ -5,18 +5,23 @@ Meesho and other marketplaces** to track inventory, stock movements and — the
 point of the whole thing — **what each batch of stock actually cost, from
 which vendor, entered by which user**.
 
-## Visual system
+## Visual system — Forest & Lime (chosen from five candidates)
 
-"High-tech boutique" mobile (per the ui-ux-pro-max style library): soft-depth
-white cards (radius 16, layered shadow) on a cool off-white canvas, one blue
-gradient (`#0052FF → #4D7CFF`) reserved for actions, the active nav item and
-the FAB, a deep-navy gradient hero card for the headline number, floating
-pill tab bar with backdrop blur, SVG icons (no emoji). Green is only for
-money-in/paid, amber for dues, red for destructive/out-of-stock. Type: Sora
-for headings and hero numbers, Inter for body (via `next/font`), monospaced
-tabular figures for every rupee amount. Press feedback scale 0.97 with
-haptics where available, staggered entrance animations,
-`prefers-reduced-motion` respected.
+White canvas with thin-bordered cards (border `#e7eae7`, radius 14, no
+shadows on cards). A two-color identity: deep forest green `#1e3b2c` for
+committed surfaces — the nav pill, update banners, save buttons, avatars —
+and lime `#b5e04c` marking what is active or newest: the active nav circle,
+the highlighted number inside a banner, the latest point on the cost chart,
+the FAB glyph. Lime-wash `#eef8d8` for product thumbs and marketplace chips.
+Semantic colors stay disciplined: green washes only for money-in/paid, amber
+for dues, red only for destructive/out-of-stock. The Overview opens with a
+greeting and a forest-green update banner that leads with what needs
+attention (dues, in lime); stat cards carry ▲/▼ deltas. Bottom nav is a solid
+forest pill with a lime active circle; SVG icons only. Type: Sora for
+headings, Inter for body (via `next/font`), monospaced tabular figures for
+every rupee amount. Press feedback, staggered entrances,
+`prefers-reduced-motion` respected. Full mockups: the "StockBook" design
+artifact (eight screens, light + dark).
 
 ## Marketplaces
 
