@@ -82,16 +82,19 @@ manifest and icons, CI running lint + typecheck + tests.
 **2. Auth + roles** — login, session middleware, admin-creates-user flow, route
 guards, RLS policies.
 
-**3. Masters** — vendor CRUD, and a dedicated add-product screen: photo
-(camera or gallery), title, SKU, optional ASIN, category, pieces per carton,
-reorder level. Phone camera photos are 3–5 MB; resize to ~1200px client-side
-before upload or the app is unusable on mobile data.
+**3. Masters** — vendor CRUD, and a dedicated add-product screen that is
+identity only: photo (camera or gallery), title, SKU, optional ASIN,
+category. Carton size and reorder point are deliberately NOT here — both are
+captured on the purchase flow, where the buyer actually knows them. Phone
+camera photos are 3–5 MB; resize to ~1200px client-side before upload or the
+app is unusable on mobile data.
 
 Purchases happen in cartons: the purchase form takes cartons × pcs-per-carton
-(pre-filled from the product, editable per purchase) and computes total pieces
-and total cost on screen before save. `quantity` on the lot is always the
-canonical piece count; the carton breakdown is snapshotted on the lot because
-a product's carton size can change later. Loose products use carton size 1.
+(pre-filled from this product's most recent lot, editable per purchase) and
+computes total pieces and total cost on screen before save. `quantity` on the
+lot is always the canonical piece count; the carton breakdown is stored on
+the lot. Loose products use carton size 1. The form also exposes the
+product's reorder point for adjustment at purchase time.
 
 Per-vendor page: totals bought (by product, with lot count and average cost),
 the money ledger (purchases and payments interleaved), balance due, and a

@@ -102,10 +102,8 @@ model Product {
   imageUrl     String?
   category     String?
   unit         String   @default("pcs")
-  // Default pieces per carton for this product. Purchases are usually made in
-  // cartons (10 cartons × 100 pcs = 1,000 pcs); this pre-fills the purchase
-  // form. 1 means the product is bought loose.
-  unitsPerCarton Int    @default(1)
+  // Set and updated from the purchase flow, not the product form — the
+  // reorder point is something you know while buying, not while cataloguing.
   reorderLevel Int      @default(0)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
@@ -126,9 +124,10 @@ model PurchaseLot {
   productId    String
   vendorId     String
   // quantity is always the canonical total in pieces. When the purchase was
-  // made in cartons, cartons × unitsPerCarton is snapshotted too (the
-  // product's carton size can change later; what this lot was bought as
-  // cannot), and quantity = cartons * unitsPerCarton.
+  // made in cartons, the breakdown is stored too (quantity = cartons *
+  // unitsPerCarton); the purchase form pre-fills unitsPerCarton from this
+  // product's most recent lot, since carton size lives on purchases, not on
+  // the product.
   quantity     Int
   cartons        Int?
   unitsPerCarton Int?
