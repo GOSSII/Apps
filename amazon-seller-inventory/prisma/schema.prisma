@@ -20,6 +20,30 @@ enum Role {
   STAFF
 }
 
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+// Entry is invite-only: the owner creates an Invite for an email, shares the
+// tokened link (WhatsApp, usually), and the invitee's Google sign-in is
+// accepted only if its email matches a PENDING invite — which flips it to
+// ACCEPTED and creates the User as active STAFF. Uninvited sign-ins create
+// nothing and see nothing.
+model Invite {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  role        Role         @default(STAFF)
+  token       String       @unique @default(cuid())
+  status      InviteStatus @default(PENDING)
+  invitedById String
+  createdAt   DateTime     @default(now())
+  acceptedAt  DateTime?
+
+  invitedBy User @relation("SentInvites", fields: [invitedById], references: [id])
+}
+
 enum MovementType {
   IN // stock arriving from a purchase lot
   SALE
@@ -49,6 +73,7 @@ model User {
   vendorPayments    VendorPayment[]
   listings          Listing[]
   pushSubscriptions PushSubscription[]
+  sentInvites       Invite[]           @relation("SentInvites")
 }
 
 // A device the user allowed push notifications on (Web Push / VAPID). The

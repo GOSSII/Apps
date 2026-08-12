@@ -127,10 +127,13 @@ screen later; v1 notifies the owner about everything staff do.
 **1. Skeleton** — Next.js + TS + Tailwind + Prisma, Supabase project, PWA
 manifest and icons, CI running lint + typecheck + tests.
 
-**2. Auth + roles** — Google sign-in only (Supabase OAuth); no passwords
-anywhere. First sign-in creates the account in a pending state, and the owner
-approves who gets in; the owner account is activated by the seed. Session
-middleware, route guards, RLS policies.
+**2. Auth + roles** — Google sign-in only (Supabase OAuth), invite-only
+entry; no passwords anywhere. The owner account is seeded. The owner invites
+each staff member by email from the Team screen; the tokened invite link is
+shared (WhatsApp, usually). A Google sign-in is accepted only if its email
+matches a pending invite — accepting it creates the account as active STAFF.
+Uninvited sign-ins create nothing and see nothing. Session middleware, route
+guards, RLS policies.
 
 **3. Masters** — vendor CRUD, and a dedicated add-product screen that is
 identity only: photo (camera or gallery), title, SKU, category, and optional
@@ -151,10 +154,10 @@ Per-vendor page: totals bought (by product, with lot count and average cost),
 the money ledger (purchases and payments interleaved), balance due, and a
 record-payment action.
 
-Role gating of screens is deliberately deferred: v1 shows every screen to
-every signed-in user, and which screens become admin-only is decided after the
-design is settled. The audit log records everything regardless of who can see
-it.
+Role gating is decided: STAFF see Stock, Products and Purchases (including
+"paid now" at purchase time). The Overview dashboard, vendor pages and dues,
+Activity log, Team/invites, and PDF/Excel exports are ADMIN-only. The audit
+log records everything regardless of who can see it.
 
 **4. Purchases** — the primary screen. Bottom-sheet form, ~5 fields, vendor
 picker with search, `inputMode="decimal"` on cost, date defaults to today.
