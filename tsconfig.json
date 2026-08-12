@@ -3,5 +3,8 @@
   "compilerOptions": {
     "strict": true,
     "types": ["jest"]
-  }
+  },
+  // The seller-inventory app staged in this repo has its own tsconfig and
+  // node_modules; the root typecheck must not sweep it up.
+  "exclude": ["node_modules", "amazon-seller-inventory"]
 }
