@@ -1,0 +1,22 @@
+# Written for the standalone gossii/amazon-seller-inventory repo, where this
+# folder is the root. While the app is staged inside gossii/apps, GitHub
+# ignores nested .github directories, so this workflow is dormant — it starts
+# running the moment the folder moves to its own repository.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build

@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafaf9;
+  --foreground: #1c1917;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0c0a09;
+    --foreground: #e7e5e4;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  /* One-thumb use on a phone is the primary case; don't let iOS zoom the
+     viewport on input focus by keeping form text at 16px minimum. */
+  -webkit-tap-highlight-color: transparent;
+}
