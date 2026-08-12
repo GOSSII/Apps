@@ -31,6 +31,15 @@ Selling price lives in its own `SellingPrice` history table. Cost and selling
 price move for unrelated reasons, and margin is only meaningful if each is
 tracked on its own timeline.
 
+Vendors are usually **not paid in full at purchase time**, so "paid" is not a
+flag on a lot — it's a balance. `VendorPayment` records each amount actually
+handed over (date, mode, who recorded it, optionally against a specific lot),
+and what a vendor is owed is the sum of their lots minus the sum of their
+payments. The purchase form takes an optional "paid now" amount that books the
+lot and the payment in one save; the admin dashboard leads with total dues and
+the per-vendor split, and each vendor gets a ledger view — purchases one side,
+payments the other, balance at the bottom.
+
 Stock on hand is a **ledger, not a counter**. A mutable `quantity` column drifts
 the first time two people save at once and there is no way to find out where it
 went wrong. Summing movements is always reconcilable.
@@ -40,6 +49,8 @@ went wrong. Summing movements is always reconcilable.
 | | ADMIN | STAFF |
 | --- | --- | --- |
 | Add products, vendors, purchases, movements | ✅ | ✅ |
+| Record vendor payments | ✅ | ✅ ("paid now" at purchase) |
+| See vendor dues, balances and ledgers | ✅ | ❌ |
 | Edit own entries | ✅ | ✅ within 24h |
 | Edit/delete anyone's entries | ✅ | ❌ |
 | Cost, margin and spend reports | ✅ | own entries only |
@@ -77,7 +88,8 @@ unusable on mobile data.
 
 **4. Purchases** — the primary screen. Bottom-sheet form, ~5 fields, vendor
 picker with search, `inputMode="decimal"` on cost, date defaults to today.
-Creating a lot writes its `IN` movement in the same transaction.
+Creating a lot writes its `IN` movement in the same transaction, and an
+optional "paid now" amount books a `VendorPayment` in that transaction too.
 
 **5. Stock** — stock list with low-stock badges, stock-out / adjust form, per
 product movement history.
@@ -85,8 +97,10 @@ product movement history.
 **6. Prices** — cost trend chart per product, selling price history, margin view
 comparing selling price against FIFO cost at that date.
 
-**7. Reports** — dashboard: total stock value, monthly spend, spend by vendor,
-activity by user, month-on-month cost change per product.
+**7. Reports** — admin dashboard: total stock value, monthly spend, **vendor
+dues** (total to pay + per-vendor split), spend by vendor, activity by user,
+month-on-month cost change per product. Per-vendor ledger screen: purchases
+and payments interleaved, balance due, record-payment action.
 
 **8. Audit log viewer** — admin only, filterable, before/after diff view.
 

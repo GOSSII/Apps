@@ -9,6 +9,7 @@ const AUDITED_MODELS = new Set([
   "PurchaseLot",
   "StockMovement",
   "SellingPrice",
+  "VendorPayment",
 ]);
 
 const MUTATIONS = new Set([
