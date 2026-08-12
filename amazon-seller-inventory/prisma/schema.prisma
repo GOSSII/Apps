@@ -28,15 +28,19 @@ enum MovementType {
   ADJUST
 }
 
+// Sign-in is Google OAuth only (via Supabase Auth) — no passwords anywhere in
+// the system. First sign-in creates the row; it stays inactive until the
+// owner approves it (the owner account itself is activated by the seed).
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  role         Role     @default(STAFF)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(cuid())
+  authId    String   @unique // Supabase auth.users id for the Google identity
+  email     String   @unique
+  name      String
+  avatarUrl String? // Google profile photo
+  role      Role     @default(STAFF)
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   purchaseLots   PurchaseLot[]
   movements      StockMovement[]

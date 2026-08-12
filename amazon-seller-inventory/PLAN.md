@@ -79,8 +79,10 @@ timestamp. Admin-only viewer with filters by user, date range and entity.
 **1. Skeleton** — Next.js + TS + Tailwind + Prisma, Supabase project, PWA
 manifest and icons, CI running lint + typecheck + tests.
 
-**2. Auth + roles** — login, session middleware, admin-creates-user flow, route
-guards, RLS policies.
+**2. Auth + roles** — Google sign-in only (Supabase OAuth); no passwords
+anywhere. First sign-in creates the account in a pending state, and the owner
+approves who gets in; the owner account is activated by the seed. Session
+middleware, route guards, RLS policies.
 
 **3. Masters** — vendor CRUD, and a dedicated add-product screen that is
 identity only: photo (camera or gallery), title, SKU, optional ASIN,
