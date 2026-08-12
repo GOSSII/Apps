@@ -7,13 +7,16 @@ which vendor, entered by which user**.
 
 ## Visual system
 
-Flat, touch-first (per the ui-ux-pro-max design-system recommendation): solid
-color blocking, zero shadows, solid bottom tabs, SVG icons (no emoji).
-Palette: industrial slate `#334155` primary + stock green `#059669` for
-actions/money-in, amber for dues, red only for destructive/out-of-stock.
-Type: Rubik for headings, Nunito Sans for body (loaded via `next/font`),
-monospaced tabular figures for every rupee amount. Immediate press feedback
-(scale 0.97), `prefers-reduced-motion` respected.
+"High-tech boutique" mobile (per the ui-ux-pro-max style library): soft-depth
+white cards (radius 16, layered shadow) on a cool off-white canvas, one blue
+gradient (`#0052FF → #4D7CFF`) reserved for actions, the active nav item and
+the FAB, a deep-navy gradient hero card for the headline number, floating
+pill tab bar with backdrop blur, SVG icons (no emoji). Green is only for
+money-in/paid, amber for dues, red for destructive/out-of-stock. Type: Sora
+for headings and hero numbers, Inter for body (via `next/font`), monospaced
+tabular figures for every rupee amount. Press feedback scale 0.97 with
+haptics where available, staggered entrance animations,
+`prefers-reduced-motion` respected.
 
 ## Marketplaces
 
