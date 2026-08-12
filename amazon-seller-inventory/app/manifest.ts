@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Seller Inventory",
-    short_name: "Inventory",
+    name: "StockBook",
+    short_name: "StockBook",
     description:
-      "Inventory, stock and purchase-price tracking for an Amazon seller team.",
+      "Stock, purchases and vendor money for marketplace sellers — Amazon, Flipkart, Meesho and more.",
     start_url: "/",
     display: "standalone",
     background_color: "#fafaf9",

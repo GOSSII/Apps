@@ -47,6 +47,7 @@ model User {
   sellingPrices  SellingPrice[]
   auditLogs      AuditLog[]
   vendorPayments VendorPayment[]
+  listings       Listing[]
 }
 
 enum PaymentMode {
@@ -97,10 +98,16 @@ model VendorPayment {
   @@index([createdById])
 }
 
+enum Marketplace {
+  AMAZON
+  FLIPKART
+  MEESHO
+  OTHER
+}
+
 model Product {
   id           String   @id @default(cuid())
   sku          String   @unique
-  asin         String? // Amazon identifier, kept for a future SP-API sync
   title        String
   description  String?
   imageUrl     String?
@@ -113,12 +120,35 @@ model Product {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  purchaseLots  PurchaseLot[]
-  movements     StockMovement[]
-  sellingPrices SellingPrice[]
+  purchaseLots PurchaseLot[]
+  movements    StockMovement[]
+  listings     Listing[]
 
   @@index([title])
   @@index([category])
+}
+
+// Where a product is sold. One product can be live on several marketplaces at
+// once — Amazon, Flipkart, Meesho — each with its own external id (ASIN, FSN,
+// Meesho id) and its own selling-price history, because the same bottle sells
+// at different prices on different platforms.
+model Listing {
+  id          String      @id @default(cuid())
+  productId   String
+  marketplace Marketplace
+  externalId  String? // ASIN / FSN / Meesho id
+  url         String?
+  isActive    Boolean     @default(true)
+  createdById String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  product       Product        @relation(fields: [productId], references: [id])
+  createdBy     User           @relation(fields: [createdById], references: [id])
+  sellingPrices SellingPrice[]
+
+  @@unique([productId, marketplace])
+  @@index([marketplace, externalId])
 }
 
 // One purchase of one product from one vendor at one price. The unit of both
@@ -177,22 +207,22 @@ model StockMovement {
   @@index([createdById])
 }
 
-// The Amazon listing price over time. Deliberately separate from cost: selling
-// price moves for reasons that have nothing to do with what you paid, and
-// margin is only meaningful when the two are tracked independently.
+// The listing's price over time, per marketplace. Deliberately separate from
+// cost: selling price moves for reasons that have nothing to do with what you
+// paid, and margin is only meaningful when the two are tracked independently.
 model SellingPrice {
   id            String   @id @default(cuid())
-  productId     String
+  listingId     String
   price         Decimal  @db.Decimal(12, 2)
   effectiveFrom DateTime
   note          String?
   createdById   String
   createdAt     DateTime @default(now())
 
-  product   Product @relation(fields: [productId], references: [id])
+  listing   Listing @relation(fields: [listingId], references: [id])
   createdBy User    @relation(fields: [createdById], references: [id])
 
-  @@index([productId, effectiveFrom])
+  @@index([listingId, effectiveFrom])
 }
 
 // Written by Prisma middleware on every mutation rather than by hand at each

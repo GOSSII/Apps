@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Seller Inventory",
+  title: "StockBook",
   description:
-    "Inventory, stock and purchase-price tracking for an Amazon seller team.",
+    "Stock, purchases and vendor money for marketplace sellers — Amazon, Flipkart, Meesho and more.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Inventory",
+    title: "StockBook",
   },
 };
 

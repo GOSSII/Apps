@@ -1,8 +1,28 @@
-# Amazon Seller Inventory — build plan
+# StockBook — build plan
 
-Mobile-first web app (PWA) for a small team to track inventory, stock movements
-and — the point of the whole thing — **what each batch of stock actually cost,
-from which vendor, entered by which user**.
+Mobile-first web app (PWA) for a small team selling on **Amazon, Flipkart,
+Meesho and other marketplaces** to track inventory, stock movements and — the
+point of the whole thing — **what each batch of stock actually cost, from
+which vendor, entered by which user**.
+
+## Visual system
+
+Flat, touch-first (per the ui-ux-pro-max design-system recommendation): solid
+color blocking, zero shadows, solid bottom tabs, SVG icons (no emoji).
+Palette: industrial slate `#334155` primary + stock green `#059669` for
+actions/money-in, amber for dues, red only for destructive/out-of-stock.
+Type: Rubik for headings, Nunito Sans for body (loaded via `next/font`),
+monospaced tabular figures for every rupee amount. Immediate press feedback
+(scale 0.97), `prefers-reduced-motion` respected.
+
+## Marketplaces
+
+A product can be live on several marketplaces at once. Each `Listing` is one
+product on one marketplace, with that marketplace's external id (Amazon ASIN,
+Flipkart FSN, Meesho id) and its own selling-price history — the same bottle
+sells at different prices on different platforms. Purchases, stock and vendor
+money are marketplace-agnostic: stock is one pool; only listings and selling
+prices are per-marketplace.
 
 - **Stack:** Next.js 15 (App Router) + TypeScript + Tailwind
 - **Data:** Supabase Postgres via Prisma
@@ -85,8 +105,9 @@ approves who gets in; the owner account is activated by the seed. Session
 middleware, route guards, RLS policies.
 
 **3. Masters** — vendor CRUD, and a dedicated add-product screen that is
-identity only: photo (camera or gallery), title, SKU, optional ASIN,
-category. Carton size and reorder point are deliberately NOT here — both are
+identity only: photo (camera or gallery), title, SKU, category, and optional
+marketplace listings (Amazon ASIN / Flipkart FSN / Meesho id, addable later
+too). Carton size and reorder point are deliberately NOT here — both are
 captured on the purchase flow, where the buyer actually knows them. Phone
 camera photos are 3–5 MB; resize to ~1200px client-side before upload or the
 app is unusable on mobile data.
@@ -131,9 +152,10 @@ Phases 1–5 produce a usable app. 6–9 are the review-and-oversight layer.
 
 ## Deliberately out of scope for v1
 
-- Amazon SP-API sync. The `Product.asin` field is there so it can be added
-  later without a migration, but SP-API needs Seller Central developer approval
-  which takes weeks and would block everything else.
+- Marketplace API sync (Amazon SP-API, Flipkart Seller API). `Listing`
+  carries each marketplace's external id so sync can be added later without a
+  migration, but each program needs its own developer approval which takes
+  weeks and would block everything else.
 - Multi-warehouse. Single stock location assumed; adding a `location` dimension
   later means one column on `StockMovement`.
 - Purchase orders / GRN workflow. Purchases are recorded after the fact.

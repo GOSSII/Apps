@@ -28,9 +28,9 @@ const sections = [
 export default function Home() {
   return (
     <main className="mx-auto max-w-md px-4 py-8">
-      <h1 className="text-2xl font-bold">Seller Inventory</h1>
+      <h1 className="text-2xl font-bold">StockBook</h1>
       <p className="mt-1 text-sm opacity-70">
-        Stock, purchase prices and vendors — with history, not overwrites.
+        One stock book for everywhere you sell — Amazon, Flipkart, Meesho & more.
       </p>
       <nav className="mt-6 flex flex-col gap-3">
         {sections.map((s) => (

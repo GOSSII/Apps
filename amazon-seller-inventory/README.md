@@ -1,7 +1,8 @@
-# Amazon Seller Inventory
+# StockBook
 
-Mobile-first web app for a small Amazon-seller team: what was bought, from
-which vendor, at what price, entered by whom — with history, not overwrites.
+Mobile-first web app for a small marketplace-seller team (Amazon, Flipkart,
+Meesho & more): what was bought, from which vendor, at what price, entered by
+whom — with history, not overwrites.
 
 **The one design rule:** cost price never lives on the product. Every purchase
 is a `PurchaseLot` (product + vendor + qty + unit cost + date + who entered
