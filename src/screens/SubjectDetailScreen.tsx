@@ -1,7 +1,10 @@
-import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Card, Dot, Empty, SectionTitle } from '../components/ui';
-import { space, themed } from '../theme';
+import React, { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Button, Card, Dot, Empty, IconButton, SCREEN_PAD, SectionTitle, Stat, StatGrid, Tile
+} from '../components/ui';
+import { Confirm, Sheet } from '../components/Modals';
+import { hairline, radius, space, themed, type, useColors } from '../theme';
 import { useApp, useDuration, useT, useToday } from '../store';
 import { daysApart, prettyDate } from '../lib/dates';
 import { dayTotalsFor, lastStudied, recentDays } from '../lib/stats';
@@ -13,20 +16,27 @@ import type { Subject } from '../types';
    question about the week. This answers the one that actually changes what an
    aspirant does tomorrow: have I been quietly avoiding this? A large all-time
    total hides a fortnight of neglect, so "last studied 9 days ago" is the line
-   that carries the screen — not the total. */
+   that carries the screen — not the total.
 
-const CHART_HEIGHT = 110;
+   Rename and delete live here rather than on the list, because this is the
+   screen you are already on when you decide a subject needs either. */
+
+const CHART_HEIGHT = 104;
 const RECENT = 8;
 
 export default function SubjectDetailScreen({ subject, onBack }: {
   subject: Subject;
   onBack: () => void;
 }) {
-  const { state } = useApp();
+  const { state, renameSubject, deleteSubject } = useApp();
   const t = useT();
   const dur = useDuration();
   const styles = useStyles();
+  const colors = useColors();
   const today = useToday();
+
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const totals = useMemo(
     () => dayTotalsFor(state.sessions, subject.id),
@@ -51,13 +61,16 @@ export default function SubjectDetailScreen({ subject, onBack }: {
   /* Counted from the dates, never from the chart's own array: a subject last
      studied before the window would come back as -1 from an index lookup and
      render as a plausible, wrong "30 days ago". */
+  const gap = last ? daysApart(last, today) : null;
   const sinceLine = ((): string => {
-    if (!last) return t('subjectNeverStudied');
-    const gap = daysApart(last, today);
+    if (gap === null) return t('subjectNeverStudied');
     if (gap === 0) return t('subjectStudiedToday');
     if (gap === 1) return t('subjectStudiedYesterday');
     return t('subjectStudiedDaysAgo', { n: gap });
   })();
+  /* A week untouched is the whole reason this line leads the screen, so past
+     that point it stops being grey text and starts being a warning. */
+  const cold = gap === null || gap >= 7;
 
   /* Scale to this subject's own best day: it is being read on its own, and
      scaling to the daily target would flatten every subject of a five-subject
@@ -71,26 +84,49 @@ export default function SubjectDetailScreen({ subject, onBack }: {
       .slice(0, RECENT),
     [state.sessions, subject.id]
   );
+  const sittingCount = state.sessions.filter(s => s.subjectId === subject.id).length;
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Pressable onPress={onBack} style={styles.back} testID="subject-back">
-        <Text style={styles.backText}>‹ {t('subjectBack')}</Text>
-      </Pressable>
+      <View style={styles.bar}>
+        <IconButton
+          name="chevronLeft"
+          tone="text"
+          label={t('subjectBack')}
+          onPress={onBack}
+          testID="subject-back"
+        />
+        <View style={styles.flex} />
+        <IconButton
+          name="pencil"
+          label={`${t('rename')} — ${subject.name}`}
+          onPress={() => setRenaming(subject.name)}
+          testID="subject-rename"
+        />
+        <IconButton
+          name="trash"
+          tone="danger"
+          label={`${t('delete')} — ${subject.name}`}
+          onPress={() => setDeleting(true)}
+          testID="subject-delete"
+        />
+      </View>
 
       <View style={styles.head}>
-        <Dot color={subject.color} />
+        <Dot color={subject.color} size={12} />
         <Text style={styles.h1} testID="subject-name">{subject.name}</Text>
       </View>
-      <Text style={styles.since} testID="subject-since">{sinceLine}</Text>
+      <View style={[styles.sincePill, cold && styles.sincePillCold]}>
+        <Text style={[styles.since, cold && styles.sinceCold]} testID="subject-since">
+          {sinceLine}
+        </Text>
+      </View>
 
-      <Card>
-        <View style={styles.statRow}>
-          <Stat label={t('subjectThisWeek')} value={dur(weekSeconds)} />
-          <Stat label={t('subjectAllTime')} value={dur(allSeconds)} testID="subject-all" />
-          <Stat label={t('subjectShareLabel')} value={`${share}%`} />
-        </View>
-      </Card>
+      <StatGrid>
+        <Tile><Stat label={t('subjectThisWeek')} value={dur(weekSeconds)} /></Tile>
+        <Tile><Stat label={t('subjectAllTime')} value={dur(allSeconds)} testID="subject-all" /></Tile>
+        <Tile><Stat label={t('subjectShareLabel')} value={`${share}%`} /></Tile>
+      </StatGrid>
 
       <SectionTitle>{t('subjectLast30')}</SectionTitle>
       <Card>
@@ -103,7 +139,7 @@ export default function SubjectDetailScreen({ subject, onBack }: {
                 {secs > 0 && (
                   <View
                     style={[
-                      styles.bar,
+                      styles.chartBar,
                       {
                         height: Math.max(4, (secs / peak) * CHART_HEIGHT),
                         backgroundColor: subject.color
@@ -124,7 +160,7 @@ export default function SubjectDetailScreen({ subject, onBack }: {
       </Card>
 
       <SectionTitle>{t('subjectSittings')}</SectionTitle>
-      <Card style={sittings.length ? styles.flush : undefined}>
+      <Card flush={sittings.length > 0}>
         {sittings.length === 0 ? (
           <Empty title={t('subjectNoSittings')} />
         ) : sittings.map((s, i) => (
@@ -137,31 +173,79 @@ export default function SubjectDetailScreen({ subject, onBack }: {
           </View>
         ))}
       </Card>
+
+      <Sheet
+        visible={renaming !== null}
+        title={t('renameSubject')}
+        onClose={() => setRenaming(null)}
+      >
+        <TextInput
+          value={renaming ?? ''}
+          onChangeText={setRenaming}
+          style={styles.input}
+          placeholderTextColor={colors.muted}
+          testID="rename-input"
+        />
+        <View style={styles.sheetRow}>
+          <Button
+            label={t('cancel')}
+            variant="ghost"
+            onPress={() => setRenaming(null)}
+            style={styles.flex}
+          />
+          <Button
+            label={t('save')}
+            testID="rename-save"
+            onPress={() => {
+              if (renaming) renameSubject(subject.id, renaming);
+              setRenaming(null);
+            }}
+            style={styles.flex}
+          />
+        </View>
+      </Sheet>
+
+      <Confirm
+        visible={deleting}
+        title={t('deleteSubjectTitle', { name: subject.name })}
+        message={sittingCount > 0
+          ? t('deleteSubjectWithSessions', { n: sittingCount })
+          : t('cannotUndo')}
+        confirmLabel={t('delete')}
+        cancelLabel={t('cancel')}
+        destructive
+        onCancel={() => setDeleting(false)}
+        onConfirm={() => {
+          setDeleting(false);
+          /* Back first: deleting while this screen is mounted leaves it
+             rendering a subject that no longer exists for one frame. */
+          onBack();
+          deleteSubject(subject.id);
+        }}
+      />
     </ScrollView>
   );
 }
 
-function Stat({ label, value, testID }: { label: string; value: string; testID?: string }) {
-  const styles = useStyles();
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue} testID={testID}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const useStyles = themed((colors) => StyleSheet.create({
-  content: { padding: space.lg, paddingBottom: space.xl * 2 },
-  back: { minHeight: 44, justifyContent: 'center', marginBottom: space.xs },
-  backText: { color: colors.accentText, fontWeight: '700', fontSize: 15 },
-  head: { flexDirection: 'row', alignItems: 'center' },
-  h1: { color: colors.text, fontSize: 28, fontWeight: '800', letterSpacing: -0.5 },
-  since: { color: colors.muted, fontSize: 14, marginTop: 2, marginBottom: space.lg },
-  statRow: { flexDirection: 'row' },
-  stat: { flex: 1 },
-  statValue: { color: colors.text, fontSize: 20, fontWeight: '800' },
-  statLabel: { color: colors.muted, fontSize: 12, marginTop: 2 },
+  content: { paddingHorizontal: SCREEN_PAD, paddingTop: space.xs, paddingBottom: 120 },
+  bar: { flexDirection: 'row', alignItems: 'center', marginLeft: -space.md, marginBottom: space.sm },
+  flex: { flex: 1 },
+  head: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  h1: { ...type.h1, color: colors.text, flexShrink: 1 },
+  sincePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surface2,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.md,
+    paddingVertical: 5,
+    marginTop: space.sm,
+    marginBottom: space.lg
+  },
+  sincePillCold: { backgroundColor: colors.surface },
+  since: { ...type.label, color: colors.muted },
+  sinceCold: { color: colors.warn, fontWeight: '700' },
+
   chart: {
     height: CHART_HEIGHT + 24,
     flexDirection: 'row',
@@ -169,24 +253,31 @@ const useStyles = themed((colors) => StyleSheet.create({
     justifyContent: 'space-between'
   },
   barCol: { flex: 1, alignItems: 'center' },
-  bar: { width: '70%', borderRadius: 3 },
-  barLabel: { color: colors.muted, fontSize: 10, marginTop: 6, height: 14 },
+  chartBar: { width: '68%', borderRadius: 3 },
+  barLabel: { ...type.caption, fontSize: 10, color: colors.muted, marginTop: 6, height: 14 },
   barLabelToday: { color: colors.text, fontWeight: '800' },
-  flush: { padding: 0 },
+
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: space.lg,
-    paddingVertical: space.md
+    paddingVertical: 14
   },
-  divider: { borderTopWidth: 1, borderTopColor: colors.line },
-  flex: { flex: 1 },
-  rowDay: { color: colors.text, fontWeight: '700' },
-  rowMeta: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  rowTime: {
+  divider: { borderTopWidth: hairline, borderTopColor: colors.line },
+  rowDay: { ...type.title, color: colors.text },
+  rowMeta: { ...type.caption, color: colors.muted, marginTop: 1 },
+  rowTime: { ...type.label, color: colors.text, ...type.numeric },
+
+  input: {
+    backgroundColor: colors.bg,
+    borderWidth: hairline,
+    borderColor: colors.line,
+    borderRadius: radius.md,
     color: colors.text,
-    fontWeight: '600',
-    fontSize: 13,
-    fontVariant: ['tabular-nums']
+    fontSize: 17,
+    padding: space.md,
+    minHeight: 50,
+    marginBottom: space.lg
   },
+  sheetRow: { flexDirection: 'row', gap: space.md }
 }));

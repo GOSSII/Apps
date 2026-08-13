@@ -128,7 +128,7 @@ const check = (name, ok, extra = '') => {
   check('and the run is recorded as done', saved.onboarded === true);
 
   check('the countdown the exam was for is on the home screen',
-    await page.getByText(/NEET in \d+ days/).isVisible());
+    await page.getByText(/NEET · \d+ days/).isVisible());
 
   // ---- it never comes back ----
   await page.reload({ waitUntil: 'domcontentloaded' });

@@ -1,16 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Card, Chip, Dot, Empty, ProgressBar, SectionTitle } from '../components/ui';
-import { Button } from '../components/ui';
+import {
+  Button, Card, Chip, Dot, Empty, IconButton, ProgressBar, SCREEN_PAD,
+  ScreenTitle, Segmented, SectionTitle, Stat, StatGrid, Tile
+} from '../components/ui';
 import { Confirm, Sheet } from '../components/Modals';
-import { type Colors, radius, space, themed, useColors } from '../theme';
+import { type Colors, hairline, radius, space, themed, type, useColors } from '../theme';
 import { useApp, useT, useDuration, useToday } from '../store';
 import { hours } from '../lib/format';
 import { dateInputValue, parseDateInput, prettyDate, weekdayLetter } from '../lib/dates';
 import { bestStreak, dayTotals, recentDays, totalsBySubject } from '../lib/stats';
-import { addDays } from '../lib/dates';
 
-const CHART_HEIGHT = 140;
+const CHART_HEIGHT = 132;
 const RECENT_PREVIEW = 6;
 
 export default function StatsScreen() {
@@ -62,16 +63,16 @@ export default function StatsScreen() {
 
   /* 12 weeks of days, column per week, oldest first. */
   const calendarWeeks = useMemo(() => {
-    const days = recentDays(84);
+    const all = recentDays(84);
     const weeks: string[][] = [];
-    for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+    for (let i = 0; i < all.length; i += 7) weeks.push(all.slice(i, i + 7));
     return weeks;
   }, [today]);
 
   /* Sessions can all be older than the window — someone coming back after a
      term off has a history and an empty grid. */
   const calendarEmpty = useMemo(
-    () => calendarWeeks.every(week => week.every(day => !(totals[day] > 0))),
+    () => calendarWeeks.every(w => w.every(day => !(totals[day] > 0))),
     [calendarWeeks, totals]
   );
 
@@ -86,7 +87,7 @@ export default function StatsScreen() {
   if (sessions.length === 0) {
     return (
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.h1}>{t('stats')}</Text>
+        <ScreenTitle>{t('stats')}</ScreenTitle>
         <Card><Empty title={t('noStatsTitle')} hint={t('noStatsHint')} /></Card>
       </ScrollView>
     );
@@ -94,20 +95,32 @@ export default function StatsScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.h1}>{t('stats')}</Text>
+      <ScreenTitle>{t('stats')}</ScreenTitle>
 
-      <Card>
-        <View style={styles.statRow}>
-          <Stat label={t('thisWeek')} value={dur(weekSeconds)} />
-          <Stat label={t('dailyAvg')} value={dur(Math.round(weekSeconds / 7))} />
-          <Stat label={t('targetHit')} value={`${daysHit}/7`} />
-        </View>
-      </Card>
+      {/* Tiles rather than three columns of one card: sharing a card means the
+          longest figure sets the size of all three, and "2h 30m" ends up
+          rendered smaller than "7". */}
+      <StatGrid>
+        <Tile><Stat label={t('thisWeek')} value={dur(weekSeconds)} /></Tile>
+        <Tile><Stat label={t('dailyAvg')} value={dur(Math.round(weekSeconds / 7))} /></Tile>
+        <Tile>
+          <Stat
+            label={t('targetHit')}
+            value={`${daysHit}/7`}
+            tone={daysHit >= 5 ? 'good' : undefined}
+          />
+        </Tile>
+      </StatGrid>
 
-      <View style={styles.chipRow}>
-        <Chip label={t('last7')} selected={range === 7} onPress={() => setRange(7)} testID="range-7" />
-        <Chip label={t('last30')} selected={range === 30} onPress={() => setRange(30)} testID="range-30" />
-      </View>
+      <Segmented
+        value={range}
+        onChange={setRange}
+        options={[
+          { value: 7, label: t('last7'), testID: 'range-7' },
+          { value: 30, label: t('last30'), testID: 'range-30' }
+        ]}
+        style={styles.segGap}
+      />
 
       <Card>
         <View style={styles.chart}>
@@ -131,7 +144,12 @@ export default function StatsScreen() {
                     range === 30 && styles.barThin,
                     {
                       height: Math.max(secs > 0 ? 4 : 2, (secs / peak) * CHART_HEIGHT),
-                      backgroundColor: hit ? colors.good : secs > 0 ? colors.accent : colors.surface2
+                      /* One hue at two strengths, not two hues: a day that hit
+                         the target is the solid accent, a day that did not is
+                         the same colour showing through. */
+                      backgroundColor: hit ? colors.accent
+                        : secs > 0 ? colors.heatMid
+                        : colors.surface2
                     }
                   ]}
                 />
@@ -146,10 +164,15 @@ export default function StatsScreen() {
       </Card>
 
       <SectionTitle>{t('bySubject')}</SectionTitle>
-      <View style={styles.chipRow}>
-        <Chip label={t('thisWeek')} selected={scope === 'week'} onPress={() => setScope('week')} />
-        <Chip label={t('allTime')} selected={scope === 'all'} onPress={() => setScope('all')} />
-      </View>
+      <Segmented
+        value={scope}
+        onChange={setScope}
+        options={[
+          { value: 'week', label: t('thisWeek'), testID: 'scope-week' },
+          { value: 'all', label: t('allTime'), testID: 'scope-all' }
+        ]}
+        style={styles.segGap}
+      />
 
       <Card>
         {subjects.length === 0 && <Empty title={t('nothingAdded')} />}
@@ -159,21 +182,21 @@ export default function StatsScreen() {
           return (
             <View key={subject.id} style={i > 0 ? styles.subjectBlock : undefined}>
               <View style={styles.subjectHead}>
-                <Dot color={subject.color} />
+                <Dot color={subject.color} size={8} />
                 <Text style={styles.subjectName}>{subject.name}</Text>
                 <Text style={styles.subjectSecs}>{dur(secs)}</Text>
               </View>
-              <ProgressBar value={share} color={subject.color} height={8} />
+              <ProgressBar value={share} color={subject.color} height={6} />
             </View>
           );
         })}
       </Card>
 
       <SectionTitle>{t('recentSittings')}</SectionTitle>
-      <Card style={{ padding: 0 }}>
+      <Card flush>
         {visible.map((session, i) => (
           <View key={session.id} style={[styles.sittingRow, i > 0 && styles.divider]}>
-            <Dot color={subjectColor(session.subjectId)} />
+            <Dot color={subjectColor(session.subjectId)} size={8} />
             <View style={styles.flex}>
               <Text style={styles.sittingName}>{subjectName(session.subjectId)}</Text>
               <Text style={styles.sittingMeta}>
@@ -187,9 +210,13 @@ export default function StatsScreen() {
               </Text>
             </View>
             <Text style={styles.sittingTime}>{dur(session.seconds)}</Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${t('edit')} — ${subjectName(session.subjectId)}, ${prettyDate(session.day)}`}
+            {/* Icons rather than the words "Edit" and "Delete": two text
+                buttons on every row is more type than the row itself, and the
+                labels are still there for anyone using a screen reader. */}
+            <IconButton
+              name="pencil"
+              testID={`row-edit-${session.id}`}
+              label={`${t('edit')} — ${subjectName(session.subjectId)}, ${prettyDate(session.day)}`}
               onPress={() => {
                 setEditError(null);
                 setEditing({
@@ -199,22 +226,20 @@ export default function StatsScreen() {
                   subjectId: session.subjectId
                 });
               }}
-              style={styles.action}
-            >
-              <Text style={styles.actionText}>{t('edit')}</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${t('delete')} — ${subjectName(session.subjectId)}, ${prettyDate(session.day)}`}
+            />
+            {/* Muted, not red. A column of six red bins down a list reads as
+                six warnings; the red belongs on the confirmation, which is
+                where the irreversible bit actually happens. */}
+            <IconButton
+              name="trash"
+              testID={`row-delete-${session.id}`}
+              label={`${t('delete')} — ${subjectName(session.subjectId)}, ${prettyDate(session.day)}`}
               onPress={() => setDeleting(session.id)}
-              style={styles.action}
-            >
-              <Text style={[styles.actionText, styles.destructive]}>{t('delete')}</Text>
-            </Pressable>
+            />
           </View>
         ))}
         {!showAll && recent.length > RECENT_PREVIEW && (
-          <Pressable onPress={() => setShowAll(true)} style={styles.showAll}>
+          <Pressable onPress={() => setShowAll(true)} style={styles.showAll} testID="show-all">
             <Text style={styles.showAllText}>{t('showAll', { n: recent.length })}</Text>
           </Pressable>
         )}
@@ -234,17 +259,16 @@ export default function StatsScreen() {
               </View>
             ))}
           </View>
-          {calendarWeeks.map((week, wi) => (
+          {calendarWeeks.map((w, wi) => (
             <View key={wi} style={styles.calWeek}>
-              {week.map(day => {
+              {w.map(day => {
                 const secs = totals[day] || 0;
-                const share = secs / targetSeconds;
                 return (
                   <View
                     key={day}
                     style={[
                       styles.calCell,
-                      { backgroundColor: heatColour(share, colors) },
+                      { backgroundColor: heatColour(secs / targetSeconds, colors) },
                       day === today && styles.calToday
                     ]}
                   />
@@ -276,23 +300,19 @@ export default function StatsScreen() {
         )}
       </Card>
 
-      <Card>
-        <View style={styles.statRow}>
-          <Stat label={t('phoneChecks')} value={String(totalDistractions)} />
-          <Stat label={t('focusRate')} value={cleanRoundsLabel} />
-        </View>
-      </Card>
-
-      <Card>
-        <View style={styles.statRow}>
+      <SectionTitle>{t('overall')}</SectionTitle>
+      <StatGrid>
+        <Tile><Stat label={t('phoneChecks')} value={String(totalDistractions)} /></Tile>
+        <Tile><Stat label={t('focusRate')} value={cleanRoundsLabel} /></Tile>
+        <Tile>
           <Stat
             label={t('bestStreak')}
             value={t(best === 1 ? 'dayUnit' : 'daysUnit', { n: best })}
           />
-          <Stat label={t('totalHours')} value={hours(allSeconds)} />
-          <Stat label={t('sittings')} value={String(sessions.length)} />
-        </View>
-      </Card>
+        </Tile>
+        <Tile><Stat label={t('totalHours')} value={hours(allSeconds)} /></Tile>
+        <Tile><Stat label={t('sittings')} value={String(sessions.length)} /></Tile>
+      </StatGrid>
 
       <Sheet visible={editing !== null} title={t('editSitting')} onClose={() => setEditing(null)}>
         <Text style={styles.label}>{t('minutesStudied')}</Text>
@@ -381,27 +401,13 @@ function heatColour(share: number, colors: Colors): string {
   if (share <= 0) return colors.surface2;
   if (share < 0.34) return colors.heatLow;
   if (share < 0.67) return colors.heatMid;
-  if (share < 1) return colors.accent;
-  return colors.good;
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  const styles = useStyles();
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
-  );
+  if (share < 1) return colors.accentGlow;
+  return colors.accent;
 }
 
 const useStyles = themed((colors) => StyleSheet.create({
-  content: { padding: space.lg, paddingBottom: space.xl * 2 },
-  h1: { color: colors.text, fontSize: 28, fontWeight: '800', marginBottom: space.md },
-  statRow: { flexDirection: 'row' },
-  stat: { flex: 1 },
-  statValue: { color: colors.text, fontSize: 20, fontWeight: '800' },
-  statLabel: { color: colors.muted, fontSize: 12, marginTop: 2 },
+  content: { paddingHorizontal: SCREEN_PAD, paddingTop: space.sm, paddingBottom: 120 },
+  segGap: { marginBottom: space.md },
   chart: {
     height: CHART_HEIGHT + 40,
     flexDirection: 'row',
@@ -421,62 +427,59 @@ const useStyles = themed((colors) => StyleSheet.create({
     marginBottom: 20
   },
   barCol: { flex: 1, alignItems: 'center' },
-  barValue: { color: colors.muted, fontSize: 10, marginBottom: 4, height: 14 },
-  bar: { width: '58%', borderRadius: radius.sm },
-  barThin: { width: '70%', borderRadius: 3 },
-  barLabel: { color: colors.muted, fontSize: 11, marginTop: 6, height: 20 },
+  barValue: { ...type.caption, fontSize: 10, color: colors.muted, marginBottom: 4, height: 14 },
+  bar: { width: '56%', borderRadius: radius.xs },
+  barThin: { width: '68%', borderRadius: 3 },
+  barLabel: { ...type.caption, fontSize: 11, color: colors.muted, marginTop: 6, height: 20 },
   barLabelToday: { color: colors.text, fontWeight: '800' },
-  legend: { color: colors.muted, fontSize: 12, marginTop: space.sm },
-  chipRow: { flexDirection: 'row', marginBottom: space.xs },
+  legend: { ...type.caption, color: colors.muted, marginTop: space.sm },
+
   calendar: { flexDirection: 'row', justifyContent: 'space-between', gap: 4 },
   /* No fixed height: the column stretches to the grid beside it, and seven
      flexed cells then land exactly on the seven rows of squares. */
   calLabels: { gap: 4, marginRight: 2 },
   calLabelCell: { flex: 1, justifyContent: 'center', minWidth: 12 },
-  calLabel: { color: colors.muted, fontSize: 9, textAlign: 'center' },
+  calLabel: { ...type.caption, fontSize: 9, color: colors.muted, textAlign: 'center' },
   calWeek: { flex: 1, gap: 4 },
   calCell: { width: '100%', aspectRatio: 1, borderRadius: 3 },
   scaleRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: space.md },
   scaleCell: { width: 12, height: 12, borderRadius: 3 },
   calToday: { borderWidth: 1, borderColor: colors.text },
+
   subjectBlock: { marginTop: space.lg },
-  subjectHead: { flexDirection: 'row', alignItems: 'center', marginBottom: space.sm },
-  subjectName: { color: colors.text, fontWeight: '700', flex: 1 },
-  subjectSecs: { color: colors.muted, fontVariant: ['tabular-nums'] },
+  subjectHead: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.sm },
+  subjectName: { ...type.title, color: colors.text, flex: 1 },
+  subjectSecs: { ...type.label, color: colors.muted, ...type.numeric },
+
   sittingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
+    paddingLeft: space.lg,
+    paddingRight: space.xs,
+    paddingVertical: space.sm,
     gap: space.sm
   },
-  divider: { borderTopWidth: 1, borderTopColor: colors.line },
+  divider: { borderTopWidth: hairline, borderTopColor: colors.line },
   flex: { flex: 1 },
-  sittingName: { color: colors.text, fontWeight: '700' },
-  sittingMeta: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  sittingTime: {
-    color: colors.text,
-    fontVariant: ['tabular-nums'],
-    fontSize: 13,
-    fontWeight: '600'
-  },
-  action: { paddingHorizontal: space.xs, paddingVertical: space.sm, minHeight: 44, justifyContent: 'center' },
-  actionText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
-  destructive: { color: colors.danger },
-  showAll: { padding: space.md, alignItems: 'center' },
-  showAllText: { color: colors.accentText, fontWeight: '700', fontSize: 13 },
-  label: { color: colors.muted, marginBottom: space.sm, fontSize: 13 },
+  sittingName: { ...type.title, color: colors.text },
+  sittingMeta: { ...type.caption, color: colors.muted, marginTop: 1 },
+  sittingTime: { ...type.label, color: colors.text, ...type.numeric },
+  showAll: { paddingVertical: space.md, alignItems: 'center', borderTopWidth: hairline, borderTopColor: colors.line },
+  showAllText: { ...type.label, color: colors.accentText },
+
+  label: { ...type.label, color: colors.muted, marginBottom: space.sm },
   input: {
     backgroundColor: colors.bg,
-    borderWidth: 1,
+    borderWidth: hairline,
     borderColor: colors.line,
     borderRadius: radius.md,
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     padding: space.md,
+    minHeight: 50,
     marginBottom: space.lg
   },
   sheetRow: { flexDirection: 'row', gap: space.md },
-  chipWrapSheet: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.md },
-  error: { color: colors.danger, fontSize: 13, marginBottom: space.sm }
+  chipWrapSheet: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.lg },
+  error: { ...type.label, color: colors.danger, marginBottom: space.sm }
 }));

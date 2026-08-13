@@ -17,6 +17,10 @@ export const emptyState = (): AppState => ({
   active: null,
   lang: 'en',
   reminder: { enabled: false, hour: 21, minute: 0 },
+  /* On by default, but silent until notifications have been allowed for
+     something the user asked for — nothing here ever raises a permission
+     prompt of its own. */
+  nudges: { neglect: true, streakRisk: true },
   pomodoro: defaultPomodoro(),
   themePref: 'system',
   celebratedDay: null,
@@ -77,6 +81,7 @@ export async function loadState(): Promise<AppState> {
       /* Older saves predate these fields — merge rather than replace, so an
          upgrade never lands the user on `undefined`. */
       reminder: { ...base.reminder, ...(parsed.reminder ?? {}) },
+      nudges: { ...base.nudges, ...(parsed.nudges ?? {}) },
       pomodoro: { ...base.pomodoro, ...(parsed.pomodoro ?? {}) },
       active: normaliseActive(parsed.active)
     };
