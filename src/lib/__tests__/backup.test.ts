@@ -5,8 +5,8 @@ import type { AppState } from '../../types';
 const full = (): AppState => ({
   ...emptyState(),
   subjects: [
-    { id: 's1', name: 'Physics', color: '#5B78E0' },
-    { id: 's2', name: 'रसायन', color: '#1F8F84' }
+    { id: 's1', name: 'Physics', color: '#5A78DA' },
+    { id: 's2', name: 'रसायन', color: '#2B8A7E' }
   ],
   sessions: [
     { id: 'a', subjectId: 's1', day: '2026-08-01', seconds: 5400, endedAt: 10, planned: true },
@@ -140,7 +140,7 @@ describe('a backup from before the app had a dark ground', () => {
     });
     const result = parseBackup(old);
     if (!result.ok) throw new Error('expected a good parse');
-    expect(result.state.subjects[0].color).toBe('#5B78E0');
+    expect(result.state.subjects[0].color).toBe('#5A78DA');
   });
 
   it('lands on the system theme, since it cannot have expressed a preference', () => {

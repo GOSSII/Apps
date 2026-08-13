@@ -3,8 +3,9 @@ import {
   AccessibilityInfo, Modal, Pressable, StyleSheet, Text, View, useWindowDimensions
 } from 'react-native';
 import { Button } from './ui';
+import { Icon } from './Icon';
 import { Confetti } from './Confetti';
-import { radius, space, themed } from '../theme';
+import { hairline, radius, space, themed, type, useColors } from '../theme';
 import { useApp, useDuration, useT, useToday } from '../store';
 import { currentStreak, dayTotals } from '../lib/stats';
 import { celebrationFor, type Celebration as Earned } from '../lib/celebrate';
@@ -24,6 +25,7 @@ export function Celebration() {
   const t = useT();
   const dur = useDuration();
   const styles = useStyles();
+  const colors = useColors();
   const today = useToday();
   const { height } = useWindowDimensions();
 
@@ -98,12 +100,22 @@ export function Celebration() {
           accessibilityRole="alert"
           accessibilityLiveRegion="polite"
         >
-          <Text style={styles.mark}>{showing.kind === 'streak' ? '🔥' : '🎉'}</Text>
+          {/* A drawn mark rather than 🎉: the emoji renders as a different
+              picture on every phone, at a weight nothing else here uses. */}
+          <View style={styles.mark}>
+            <Icon
+              name={showing.kind === 'streak' ? 'flame' : 'check'}
+              size={30}
+              color={colors.accentText}
+              strokeWidth={2.2}
+            />
+          </View>
           <Text style={styles.title} testID="celebration-title">{title}</Text>
           <Text style={styles.body}>
             {t('celebrateBody', { time: dur(showing.seconds) })}
           </Text>
           <View style={styles.streakPill}>
+            <Icon name="flame" size={15} color={colors.accentText} strokeWidth={2} />
             <Text style={styles.streakText} testID="celebration-streak">
               {t(showing.streak === 1 ? 'streakDays' : 'streakDaysPlural', { n: showing.streak })}
             </Text>
@@ -132,8 +144,8 @@ const useStyles = themed((colors, shadow) => StyleSheet.create({
   card: {
     ...shadow,
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
+    borderRadius: radius.xl,
+    borderWidth: hairline,
     borderColor: colors.line,
     width: '100%',
     maxWidth: 400,
@@ -141,35 +153,32 @@ const useStyles = themed((colors, shadow) => StyleSheet.create({
     paddingVertical: space.xl,
     paddingHorizontal: space.lg
   },
-  mark: { fontSize: 44 },
-  title: {
-    color: colors.text,
-    fontSize: 26,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    marginTop: space.sm,
-    textAlign: 'center'
+  mark: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center'
   },
-  body: {
-    color: colors.muted,
-    fontSize: 15,
-    marginTop: space.xs,
-    textAlign: 'center'
-  },
+  title: { ...type.h1, fontSize: 26, color: colors.text, marginTop: space.md, textAlign: 'center' },
+  body: { ...type.body, color: colors.muted, marginTop: space.xs, textAlign: 'center' },
   streakPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: colors.accentSoft,
     borderRadius: radius.pill,
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
     marginTop: space.lg
   },
-  streakText: { color: colors.text, fontWeight: '700', fontSize: 16 },
+  streakText: { ...type.title, color: colors.accentText, fontWeight: '700' },
   note: {
+    ...type.caption,
     color: colors.muted,
-    fontSize: 13,
     marginTop: space.md,
     textAlign: 'center',
-    lineHeight: 19,
     paddingHorizontal: space.sm
   },
   button: { marginTop: space.lg, alignSelf: 'stretch' }

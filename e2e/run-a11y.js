@@ -87,17 +87,24 @@ const seed = {
   // ---- the dial reads as numbers, not as an unlabelled graphic ----
   check('the dial\'s own numbers are readable',
     (await page.getByTestId('dial-total').textContent()) === '0m');
-  const svgHidden = await page.evaluate(() => {
-    const svg = document.querySelector('svg');
-    if (!svg) return 'no svg';
-    let el = svg;
-    while (el) {
-      if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') return true;
-      el = el.parentElement;
-    }
-    return false;
+  /* Every drawing on this screen is decorative — the ring repeats the number
+     inside it, and each icon sits in a control that already has a label. One
+     of them announcing itself as "image" is a row read twice. */
+  const exposed = await page.evaluate(() => {
+    const bad = [];
+    document.querySelectorAll('svg').forEach((svg, i) => {
+      let el = svg, hidden = false;
+      while (el) {
+        if (el.getAttribute && el.getAttribute('aria-hidden') === 'true') { hidden = true; break; }
+        el = el.parentElement;
+      }
+      if (!hidden) bad.push(i + ':' + (svg.getAttribute('role') || 'no-role'));
+    });
+    return { total: document.querySelectorAll('svg').length, bad };
   });
-  check('the decorative ring is hidden from screen readers', svgHidden === true, String(svgHidden));
+  check('there is a drawing on the dashboard at all', exposed.total > 0, JSON.stringify(exposed));
+  check('and every one of them is hidden from screen readers',
+    exposed.bad.length === 0, JSON.stringify(exposed.bad));
 
   // ---- stats: row actions must say what they act on ----
   await page.getByTestId('tab-stats').click();
@@ -118,9 +125,26 @@ const seed = {
   await page.getByTestId('tab-subjects').click();
   await page.waitForTimeout(700);
   const subs = await targets();
-  check('subject actions name their subject',
-    subs.some(t => /Rename — Physics/.test(t.name)) && subs.some(t => /Delete — Physics/.test(t.name)),
+  check('each subject row says which subject it opens',
+    subs.some(t => /Open Physics/.test(t.name)),
     JSON.stringify(subs.map(t => t.name).slice(0, 10)));
+  const smallSubs = subs.filter(t => t.h < MIN_TARGET);
+  check(`every subjects target is at least ${MIN_TARGET}px tall`,
+    smallSubs.length === 0, JSON.stringify(smallSubs));
+
+  /* Rename and delete moved onto the subject's own screen. They are icons
+     there, so their names are the only thing a screen reader gets — if these
+     ever go bare the buttons become two unlabelled squares. */
+  await page.getByTestId('open-s1').click();
+  await page.waitForTimeout(600);
+  const detail = await targets();
+  check('subject actions name their subject',
+    detail.some(t => /Rename — Physics/.test(t.name))
+    && detail.some(t => /Delete — Physics/.test(t.name)),
+    JSON.stringify(detail.map(t => t.name).slice(0, 10)));
+  const smallDetail = detail.filter(t => t.h < MIN_TARGET);
+  check(`every subject-detail target is at least ${MIN_TARGET}px tall`,
+    smallDetail.length === 0, JSON.stringify(smallDetail));
 
   await browser.close();
   console.log(failures ? `\n${failures} failing check(s)` : '\nall checks passed');

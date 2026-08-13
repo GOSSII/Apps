@@ -81,6 +81,22 @@ describe('onboarding', () => {
     expect(state.onboarded).toBe(true);
   });
 
+  it('gives a save that predates the nudges both of them, switched on', async () => {
+    /* Merged rather than replaced: an upgrade must never land the user on an
+       `undefined` that the settings switches then render as off. */
+    await AsyncStorage.setItem(KEY, JSON.stringify({ v: 1, subjects: [], sessions: [] }));
+    const state = await loadState();
+    expect(state.nudges).toEqual({ neglect: true, streakRisk: true });
+  });
+
+  it('keeps a nudge the user turned off, and defaults the other', async () => {
+    await AsyncStorage.setItem(KEY, JSON.stringify({
+      v: 1, subjects: [], sessions: [], nudges: { neglect: false }
+    }));
+    const state = await loadState();
+    expect(state.nudges).toEqual({ neglect: false, streakRisk: true });
+  });
+
   it('an empty-but-present save also counts — they opened it before', async () => {
     await AsyncStorage.setItem(KEY, JSON.stringify({ v: 1, subjects: [], sessions: [] }));
     expect((await loadState()).onboarded).toBe(true);
