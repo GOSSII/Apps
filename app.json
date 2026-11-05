@@ -22,6 +22,12 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.RECORD_AUDIO"
+      ],
       "versionCode": 1
     },
     "web": {
@@ -34,9 +40,9 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#F5F4F0",
+          "backgroundColor": "#145247",
           "dark": {
-            "backgroundColor": "#111310"
+            "backgroundColor": "#145247"
           }
         }
       ],
