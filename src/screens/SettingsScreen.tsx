@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import {
   Button, Card, Row, SCREEN_PAD, ScreenTitle, Segmented, SectionTitle
 } from '../components/ui';
@@ -21,6 +21,10 @@ import { Confirm, Sheet } from '../components/Modals';
    a segmented control; everything that is on or off is a switch; everything
    that needs typing opens a sheet. The screen is now readable end to end
    without scrolling past four buttons you will never press. */
+
+/* Play wants the policy reachable from inside the app. It is the one thing here
+   that needs the internet, and only because the person asked to read it. */
+const PRIVACY_URL = 'https://stockbook.sellertoolsindia.com/padhai-streak/privacy.html';
 
 const THEME_OPTIONS: { key: ThemePref; labelKey: Key }[] = [
   { key: 'system', labelKey: 'themeSystem' },
@@ -340,6 +344,14 @@ export default function SettingsScreen() {
           onPress={() => setConfirmReset(true)}
           style={styles.gapTop}
           testID="erase-all"
+        />
+      </Card>
+      <Card style={styles.gapTop}>
+        <Row
+          first
+          title={t('privacyPolicy')}
+          onPress={() => { void Linking.openURL(PRIVACY_URL).catch(() => {}); }}
+          testID="privacy-policy"
         />
       </Card>
 
