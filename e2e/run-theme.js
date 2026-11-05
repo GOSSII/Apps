@@ -15,9 +15,9 @@ const check = (name, ok, extra = '') => {
   if (!ok) failures++;
 };
 
-const LIGHT_BG = 'rgb(241, 243, 252)';   // #F1F3FC
-const DARK_BG = 'rgb(15, 17, 21)';       // #0F1115
-const DARK_SURFACE = 'rgb(23, 26, 33)';  // #171A21
+const LIGHT_BG = 'rgb(245, 244, 240)';   // #F5F4F0
+const DARK_BG = 'rgb(17, 19, 16)';       // #111310
+const DARK_SURFACE = 'rgb(26, 28, 25)';  // #1A1C19
 
 const seed = (extra = {}) => ({
   v: 1,
@@ -105,7 +105,7 @@ const groundOf = page => page.evaluate(() => {
   const cardBg = await page.evaluate(() => {
     const el = [...document.querySelectorAll('div')].find(d => {
       const s = getComputedStyle(d);
-      return s.borderRadius.startsWith('20px') && s.backgroundColor !== 'rgba(0, 0, 0, 0)';
+      return s.borderRadius.startsWith('22px') && s.backgroundColor !== 'rgba(0, 0, 0, 0)';
     });
     return el ? getComputedStyle(el).backgroundColor : 'none';
   });
@@ -139,8 +139,12 @@ const groundOf = page => page.evaluate(() => {
   const dotColours = await page.evaluate(() =>
     [...document.querySelectorAll('div')]
       .filter(d => {
+        /* Any small circle: subject dots are drawn at 8, 9 or 12px depending
+           on which screen they are on, so pinning one size finds nothing. */
         const s = getComputedStyle(d);
-        return s.width === '10px' && s.height === '10px' && s.borderRadius.startsWith('5px');
+        const w = parseFloat(s.width);
+        return w >= 8 && w <= 12 && s.width === s.height
+          && Math.abs(parseFloat(s.borderRadius) - w / 2) < 0.6;
       })
       .map(d => getComputedStyle(d).backgroundColor));
   check('the pre-dark-mode subject colour was migrated on load',

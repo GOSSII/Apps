@@ -55,6 +55,17 @@ export type Reminder = {
   minute: number;
 };
 
+/** The two nudges the app works out for itself, as opposed to the nightly
+ *  reminder, which fires at a time the user picked. Each can be turned off on
+ *  its own — someone who wants the streak warning may well not want to be told
+ *  about a subject they are deliberately parking until after prelims. */
+export type Nudges = {
+  /** A subject untouched for a week. */
+  neglect: boolean;
+  /** A live streak that today's total has not yet saved. */
+  streakRisk: boolean;
+};
+
 export type PresetKey = 'open' | 'starter' | 'standard' | 'deep' | 'custom';
 
 /** Focus/break lengths in minutes. `open` has no fixed length. */
@@ -77,6 +88,7 @@ export type AppState = {
   active: ActiveTimer | null;
   lang: Lang;
   reminder: Reminder;
+  nudges: Nudges;
   pomodoro: Pomodoro;
   themePref: ThemePref;
   /** The last day whose target-hit was celebrated, so reopening the app that

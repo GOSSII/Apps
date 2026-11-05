@@ -55,7 +55,8 @@ const check = (name, ok, extra = '') => {
   check('before midnight the dial shows the night\'s work',
     (await page.getByTestId('dial-total').textContent()) === '4h');
   check('before midnight the streak counts both days',
-    await page.getByText(/🔥 2 days/).isVisible());
+    (await page.getByTestId('streak-pill').textContent()) === '2 days',
+    await page.getByTestId('streak-pill').textContent());
 
   // Cross midnight with the app sitting open on the dashboard.
   await page.clock.fastForward('02:00');
@@ -66,7 +67,8 @@ const check = (name, ok, extra = '') => {
   const leftAfter = await page.getByTestId('dial-remaining').textContent();
   check('after midnight the target is owed again', leftAfter === '4h to go', leftAfter);
   check('the streak survives the rollover — yesterday still counts',
-    await page.getByText(/🔥 2 days/).isVisible());
+    (await page.getByTestId('streak-pill').textContent()) === '2 days',
+    await page.getByTestId('streak-pill').textContent());
   /* The new day has nothing in it, so nothing has been earned in it. A
      rollover that re-fired last night's confetti would be the worst possible
      way to be woken at 00:01. */

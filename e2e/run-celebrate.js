@@ -106,7 +106,8 @@ for (let i = 0; i < 6; i++) run[i + 1] = TARGET;
   check('the card carries the day\'s total',
     await page.getByText('4h studied today.').isVisible());
   check('the card carries the streak',
-    (await page.getByTestId('celebration-streak').textContent()) === '🔥 1 day');
+    (await page.getByTestId('celebration-streak').textContent()) === '1 day',
+    await page.getByTestId('celebration-streak').textContent());
   await page.screenshot({ path: 'shot-celebrate-first.png' });
 
   // ---- dismissing, and never seeing it again ----
@@ -120,7 +121,8 @@ for (let i = 0; i < 6; i++) run[i + 1] = TARGET;
   await page.waitForTimeout(1500);
   check('reopening the app that evening does not replay it', (await showing()) === false);
   check('the dial still shows the day was hit',
-    await page.getByText(/Target done/).isVisible());
+    /past target$/.test(await page.getByTestId('dial-remaining').textContent()),
+    await page.getByTestId('dial-remaining').textContent());
 
   // ---- an ordinary good day, after the first ----
   await load(seed({ 0: TARGET - 60, 2: TARGET, 3: TARGET }));
@@ -138,7 +140,8 @@ for (let i = 0; i < 6; i++) run[i + 1] = TARGET;
   check('the milestone card says what the run means',
     await page.getByText(/7 days without a gap/).isVisible());
   check('the streak pill agrees with the headline',
-    (await page.getByTestId('celebration-streak').textContent()) === '🔥 7 days');
+    (await page.getByTestId('celebration-streak').textContent()) === '7 days',
+    await page.getByTestId('celebration-streak').textContent());
   await page.screenshot({ path: 'shot-celebrate-streak.png' });
   await page.getByTestId('celebration-dismiss').click();
   await page.waitForTimeout(400);

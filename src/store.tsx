@@ -3,7 +3,7 @@ import React, {
 } from 'react';
 import { AppState as RNAppState } from 'react-native';
 import type {
-  ActiveTimer, AppState, Exam, Pomodoro, Reminder, Session, Subject, ThemePref
+  ActiveTimer, AppState, Exam, Nudges, Pomodoro, Reminder, Session, Subject, ThemePref
 } from './types';
 import { emptyState, loadState, saveState } from './lib/storage';
 import { dayKey } from './lib/dates';
@@ -84,6 +84,7 @@ type Actions = {
   setExam(exam: Exam | null): void;
   setLang(lang: Lang): void;
   setReminder(reminder: Reminder): void;
+  setNudges(nudges: Nudges): void;
   setPomodoro(pomodoro: Pomodoro): void;
   /** Records that today's target-hit has been celebrated. */
   markCelebrated(day: string): void;
@@ -320,6 +321,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(s => ({ ...s, reminder }));
   }, []);
 
+  const setNudges = useCallback((nudges: Nudges) => {
+    setState(s => ({ ...s, nudges }));
+  }, []);
+
   const setPomodoro = useCallback((pomodoro: Pomodoro) => {
     setState(s => ({ ...s, pomodoro }));
   }, []);
@@ -354,12 +359,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addSubject, renameSubject, deleteSubject,
     startTimer, startBreak, pauseTimer, resumeTimer, stopTimer, discardTimer,
     logManual, editSession, deleteSession, setDailyTarget, setExam,
-    setLang, setReminder, setPomodoro, setThemePref, markCelebrated, finishOnboarding,
+    setLang, setReminder, setNudges, setPomodoro, setThemePref, markCelebrated,
+    finishOnboarding,
     replaceAll, resetAll
   }), [state, ready, addSubject, renameSubject, deleteSubject, startTimer,
        startBreak, pauseTimer, resumeTimer, stopTimer, discardTimer, logManual,
        editSession, deleteSession, setDailyTarget, setExam, setLang, setReminder,
-       setPomodoro, setThemePref, markCelebrated, finishOnboarding, replaceAll,
+       setNudges, setPomodoro, setThemePref, markCelebrated, finishOnboarding, replaceAll,
        resetAll]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

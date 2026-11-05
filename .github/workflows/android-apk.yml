@@ -1,0 +1,63 @@
+name: Android APK
+
+# Builds an installable APK and attaches it to the run, so testing a branch on
+# a real phone is a download rather than a local Android toolchain.
+#
+# No secrets and no Expo account are involved. `expo prebuild` generates the
+# native project from app.json, and Expo's template signs release builds with
+# the debug keystore it ships — which is fine for testing and deliberately not
+# fine for the Play Store, where a real upload key is needed.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'claude/**']
+
+jobs:
+  apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # AGP is happiest on 17; the runner ships several JDKs and picks the
+      # newest unless told otherwise.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate the native project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Assemble
+        working-directory: android
+        # arm64 only: every Android phone sold in roughly the last decade is
+        # arm64-v8a, and building the other three doubles both the build time
+        # and the download for no one who is going to install this.
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+
+      - name: Name it after the commit that built it
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/app-release.apk \
+             "out/padhai-streak-${GITHUB_SHA::7}.apk"
+          ls -lh out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: padhai-streak-apk
+          path: out/*.apk
+          # Long enough to still be there after a weekend, short enough not to
+          # leave months of builds lying around.
+          retention-days: 14

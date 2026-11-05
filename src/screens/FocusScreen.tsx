@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Ring } from '../components/Ring';
-import { Button } from '../components/ui';
-import { radius, space, themed, useColors } from '../theme';
+import { Icon } from '../components/Icon';
+import { Button, Dot } from '../components/ui';
+import { hairline, radius, space, themed, type, useColors } from '../theme';
 import {
   MAX_OPEN_SECONDS, creditedSeconds, elapsedOf, isOverCap, isRoundDone, remainingOf,
   useApp, useDuration, useT, useTicker
@@ -15,7 +16,12 @@ import { cancelRoundEnd, installNotificationHandler, scheduleRoundEnd } from '..
 const KEEP_AWAKE_TAG = 'padhai-focus';
 
 /* Full screen, no tab bar, nothing to tap by accident. The whole point of the
-   mode is that the phone stops being interesting for the next 25 minutes. */
+   mode is that the phone stops being interesting for the next 25 minutes.
+
+   Which is why the running state now has exactly one large control. Four
+   equally-weighted pills stacked under the dial is four things to think about;
+   a single pause button, with the way out kept deliberately small underneath
+   it, is one. */
 export default function FocusScreen() {
   const {
     state, pauseTimer, resumeTimer, stopTimer, discardTimer, startTimer, startBreak
@@ -41,7 +47,6 @@ export default function FocusScreen() {
   const runningSince = active?.runningSince ?? null;
   const plannedSeconds = active?.plannedSeconds ?? null;
   const kind = active?.kind;
-  const subjectName = state.subjects.find(s => s.id === active?.subjectId)?.name ?? '';
 
   useEffect(() => { void installNotificationHandler(); }, []);
 
@@ -103,19 +108,22 @@ export default function FocusScreen() {
   return (
     <View style={styles.root}>
       <View style={styles.head}>
-        {/* Not the subject's tint: at 12px uppercase this is text, and a
-            colour chosen to work as a 10px dot sits at 3.5:1 on the light
-            ground — below the bar for anything you are meant to read. The
-            ring below carries the subject's colour instead. */}
+        {/* Not the subject's tint: at 11px uppercase this is text, and a colour
+            chosen to work as a 10px dot sits at 3.5:1 on the light ground —
+            below the bar for anything you are meant to read. The ring below
+            carries the subject's colour instead. */}
         <Text style={[styles.kicker, isBreak && styles.kickerBreak]}>
           {isBreak ? t('breakLabel') : t('round', { n: active.round })}
         </Text>
-        <Text style={styles.subject}>{subject?.name ?? t('focus')}</Text>
+        <View style={styles.subjectRow}>
+          {!isBreak && !!subject && <Dot color={subject.color} size={9} />}
+          <Text style={styles.subject}>{subject?.name ?? t('focus')}</Text>
+        </View>
       </View>
 
       <Ring
-        size={276}
-        stroke={16}
+        size={286}
+        stroke={14}
         progress={done ? 1 : progress}
         color={tint}
         gradientTo={isBreak ? colors.good : colors.accentGlow}
@@ -147,25 +155,29 @@ export default function FocusScreen() {
             <>
               <Button
                 label={t('backToStudy')}
+                icon="play"
                 testID="focus-back"
                 onPress={() => startTimer(active.subjectId)}
                 style={styles.wide}
               />
               <Button
                 label={t('doneForNow')}
-                variant="ghost"
+                variant="quiet"
                 onPress={discardTimer}
                 style={styles.wide}
               />
             </>
           ) : (
             <>
-              <Text style={styles.saved}>
-                {t('roundSaved', {
-                  time: dur(credited),
-                  subject: subject?.name ?? ''
-                })}
-              </Text>
+              <View style={styles.savedRow}>
+                <Icon name="check" size={16} color={colors.good} strokeWidth={2.6} />
+                <Text style={styles.saved}>
+                  {t('roundSaved', {
+                    time: dur(credited),
+                    subject: subject?.name ?? ''
+                  })}
+                </Text>
+              </View>
               <Button
                 label={t('takeBreak', { time: dur(breakSeconds) })}
                 testID="focus-break"
@@ -184,7 +196,7 @@ export default function FocusScreen() {
               />
               <Button
                 label={t('doneForNow')}
-                variant="ghost"
+                variant="quiet"
                 testID="focus-done"
                 onPress={() => { stopTimer(); }}
                 style={styles.wide}
@@ -193,12 +205,18 @@ export default function FocusScreen() {
           )
         ) : (
           <>
-            <Button
-              label={running ? t('pause') : t('resume')}
-              testID="focus-pause"
+            {/* One control, sized so it can be found without looking. */}
+            <Pressable
               onPress={running ? pauseTimer : resumeTimer}
-              style={styles.wide}
-            />
+              testID="focus-pause"
+              accessibilityRole="button"
+              accessibilityLabel={running ? t('pause') : t('resume')}
+              style={({ pressed }) => [styles.bigBtn, pressed && styles.dim]}
+            >
+              <Icon name={running ? 'pause' : 'play'} size={30} color="#FFFFFF" />
+            </Pressable>
+            <Text style={styles.bigBtnLabel}>{running ? t('pause') : t('resume')}</Text>
+
             {isBreak ? (
               <Button
                 label={t('skipBreak')}
@@ -221,7 +239,7 @@ export default function FocusScreen() {
       </View>
 
       {!done && !isBreak && (
-        <Pressable onPress={discardTimer} style={styles.discard}>
+        <Pressable onPress={discardTimer} style={styles.discard} testID="focus-discard">
           <Text style={styles.discardText}>{t('discardSitting')}</Text>
         </Pressable>
       )}
@@ -237,56 +255,39 @@ const useStyles = themed((colors) => StyleSheet.create({
     justifyContent: 'center',
     padding: space.xl
   },
-  head: { alignItems: 'center', marginBottom: space.xl },
-  kicker: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    marginBottom: 6
-  },
+  head: { alignItems: 'center', marginBottom: space.xl, gap: 6 },
+  kicker: { ...type.kicker, color: colors.muted },
   kickerBreak: { color: colors.good },
-  subject: { color: colors.text, fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
-  clock: {
-    color: colors.text,
-    fontSize: 46,
-    fontWeight: '800',
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -1
-  },
-  caption: {
-    color: colors.muted,
-    fontSize: 13,
-    marginTop: 6,
-    textAlign: 'center'
-  },
-  capped: {
-    color: colors.warn,
-    fontSize: 13,
-    marginTop: space.sm,
-    textAlign: 'center'
-  },
-  distractions: {
-    color: colors.muted,
-    fontSize: 13,
-    marginTop: space.lg,
-    textAlign: 'center'
-  },
-  saved: {
-    color: colors.good,
-    fontWeight: '700',
-    textAlign: 'center',
+  subjectRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  subject: { ...type.h1, fontSize: 26, color: colors.text },
+  clock: { ...type.display, fontSize: 46, color: colors.text },
+  caption: { ...type.caption, color: colors.muted, marginTop: 6, textAlign: 'center' },
+  capped: { ...type.caption, color: colors.warn, marginTop: space.sm, textAlign: 'center' },
+  distractions: { ...type.caption, color: colors.muted, marginTop: space.lg, textAlign: 'center' },
+
+  savedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     marginBottom: space.xs
   },
-  controls: {
-    width: '100%',
-    maxWidth: 340,
-    marginTop: space.xl,
-    gap: space.md
-  },
+  saved: { ...type.label, color: colors.good },
+
+  controls: { width: '100%', maxWidth: 340, marginTop: space.xl, gap: space.md, alignItems: 'center' },
   wide: { width: '100%' },
-  discard: { marginTop: space.lg, padding: space.sm },
-  discardText: { color: colors.muted, fontSize: 13 },
-  radiusRef: { borderRadius: radius.md }
+  bigBtn: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  bigBtnLabel: { ...type.kicker, color: colors.muted, marginTop: -space.xs },
+  dim: { opacity: 0.6 },
+
+  discard: { marginTop: space.lg, minHeight: 44, justifyContent: 'center' },
+  discardText: { ...type.caption, color: colors.muted },
+  hairlineRef: { borderWidth: hairline, borderRadius: radius.sm }
 }));

@@ -6,15 +6,23 @@ import { Platform } from 'react-native';
 
 export type ReminderResult = 'ok' | 'denied' | 'unsupported';
 
-/* Two channels, not one: a user who silences the nightly nudge should not
-   also lose the alarm that ends their round. */
+/* A channel per kind, not one for everything: a user who silences the nightly
+   reminder should not also lose the alarm that ends their round. */
 const REMINDER_CHANNEL = 'daily-reminder';
-const ROUND_CHANNEL = 'round-end';
+/* Versioned because Android freezes a channel's importance the moment it is
+   created and refuses every later change — the original 'round-end' channel
+   was registered at DEFAULT, which is the difference between an alarm that
+   interrupts and one that waits silently in the shade. A new id is the only
+   way to ship the fix to anyone who already has the app. */
+const ROUND_CHANNEL = 'round-end-v2';
+const NUDGE_CHANNEL = 'study-nudges';
 
-/* Fixed identifiers so each notification can be cancelled on its own. The
-   round-end alarm and the daily nudge must never cancel each other. */
+/* Fixed identifiers so each notification can be cancelled on its own. They
+   must never cancel each other. */
 const DAILY_ID = 'padhai-daily-reminder';
 const ROUND_ID = 'padhai-round-end';
+const NEGLECT_ID = 'padhai-neglect-nudge';
+const STREAK_ID = 'padhai-streak-risk';
 
 async function load() {
   if (Platform.OS === 'web') return null;
@@ -32,11 +40,33 @@ async function ensurePermission(Notifications: any): Promise<boolean> {
   return (await Notifications.requestPermissionsAsync()).granted;
 }
 
-async function ensureChannel(Notifications: any, id: string, name: string): Promise<void> {
+/** Whether notifications are already allowed. Never prompts — the background
+ *  nudges use this so that the first thing a new install does is not throw a
+ *  permission dialog at someone who has not asked for one. */
+export async function notificationsAllowed(): Promise<boolean> {
+  const Notifications = await load();
+  if (!Notifications) return false;
+  try {
+    return (await Notifications.getPermissionsAsync()).granted === true;
+  } catch {
+    return false;
+  }
+}
+
+type Importance = 'default' | 'high';
+
+async function ensureChannel(
+  Notifications: any,
+  id: string,
+  name: string,
+  importance: Importance = 'default'
+): Promise<void> {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync(id, {
     name,
-    importance: Notifications.AndroidImportance.DEFAULT
+    importance: importance === 'high'
+      ? Notifications.AndroidImportance.HIGH
+      : Notifications.AndroidImportance.DEFAULT
   });
 }
 
@@ -122,7 +152,10 @@ export async function scheduleRoundEnd(
        turned on the daily reminder, which is most people. A refusal is
        accepted quietly: the round itself does not need the alarm. */
     if (!(await ensurePermission(Notifications))) return;
-    await ensureChannel(Notifications, ROUND_CHANNEL, 'Round finished');
+    /* High, so it arrives as a heads-up banner with a sound. This one exists
+       to be noticed from across the room with the phone face down; delivered
+       silently to the shade it does nothing at all. */
+    await ensureChannel(Notifications, ROUND_CHANNEL, 'Round finished', 'high');
     await Notifications.cancelScheduledNotificationAsync(ROUND_ID).catch(() => {});
     await Notifications.scheduleNotificationAsync({
       identifier: ROUND_ID,
@@ -148,6 +181,71 @@ export async function cancelRoundEnd(): Promise<void> {
     /* nothing scheduled. */
   }
 }
+
+/* ---- the two background nudges -------------------------------------------
+
+   Both are one-shot, both are cancelled and rebuilt from live state whenever
+   anything they depend on changes, and neither ever asks for permission: they
+   are scheduled only when it has already been granted for something the user
+   did ask for. A nudge that prompts is a nudge that gets the whole app muted. */
+
+async function scheduleOneShot(
+  id: string,
+  channel: string,
+  channelName: string,
+  seconds: number,
+  title: string,
+  body: string
+): Promise<void> {
+  const Notifications = await load();
+  if (!Notifications) return;
+  try {
+    if (!(await Notifications.getPermissionsAsync()).granted) return;
+    await ensureChannel(Notifications, channel, channelName);
+    await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+    if (!(seconds > 0)) return;
+    await Notifications.scheduleNotificationAsync({
+      identifier: id,
+      content: { title, body },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: Math.max(1, Math.round(seconds)),
+        repeats: false,
+        channelId: channel
+      }
+    });
+  } catch {
+    /* Nothing on screen depends on this. */
+  }
+}
+
+async function cancelOne(id: string): Promise<void> {
+  const Notifications = await load();
+  if (!Notifications) return;
+  try {
+    await Notifications.cancelScheduledNotificationAsync(id);
+  } catch {
+    /* nothing scheduled. */
+  }
+}
+
+/** "You haven't opened Chemistry in 9 days." */
+export async function scheduleNeglectNudge(
+  seconds: number, title: string, body: string
+): Promise<void> {
+  await scheduleOneShot(NEGLECT_ID, NUDGE_CHANNEL, 'Study nudges', seconds, title, body);
+}
+
+export const cancelNeglectNudge = () => cancelOne(NEGLECT_ID);
+
+/** "Your 12-day streak ends at midnight." */
+export async function scheduleStreakRisk(
+  seconds: number, title: string, body: string
+): Promise<void> {
+  await scheduleOneShot(STREAK_ID, NUDGE_CHANNEL, 'Study nudges', seconds, title, body);
+}
+
+export const cancelStreakRisk = () => cancelOne(STREAK_ID);
 
 /** '21:00' / '9:5' → {hour, minute}; null when it isn't a real clock time. */
 export function parseTimeInput(text: string): { hour: number; minute: number } | null {

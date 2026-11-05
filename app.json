@@ -7,7 +7,7 @@
     "icon": "./assets/icon.png",
     "scheme": "padhaistreak",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#F1F3FC",
+    "backgroundColor": "#F5F4F0",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.padhaistreak.app",
@@ -16,12 +16,18 @@
     "android": {
       "package": "com.padhaistreak.app",
       "adaptiveIcon": {
-        "backgroundColor": "#2F49BC",
+        "backgroundColor": "#0F4438",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.RECORD_AUDIO"
+      ],
       "versionCode": 1
     },
     "web": {
@@ -34,9 +40,9 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#F1F3FC",
+          "backgroundColor": "#145247",
           "dark": {
-            "backgroundColor": "#0F1115"
+            "backgroundColor": "#145247"
           }
         }
       ],
@@ -44,7 +50,7 @@
         "expo-notifications",
         {
           "icon": "./assets/android-icon-monochrome.png",
-          "color": "#3552CC",
+          "color": "#145247",
           "defaultChannel": "daily-reminder"
         }
       ]

@@ -1,11 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ring } from '../components/Ring';
-import { Button, Card, Chip, Dot, Empty, SectionTitle } from '../components/ui';
+import { Icon } from '../components/Icon';
+import {
+  Button, Card, Chip, Dot, Empty, SCREEN_PAD, Segmented, SectionTitle
+} from '../components/ui';
 import { Sheet } from '../components/Modals';
-import { radius, space, themed, useColors } from '../theme';
+import { hairline, radius, space, themed, type, useColors } from '../theme';
 import { useApp, useDuration, useT, useToday } from '../store';
-import { daysUntil } from '../lib/dates';
+import { daysUntil, prettyDate } from '../lib/dates';
 import { currentStreak, dayTotals, totalsBySubject } from '../lib/stats';
 import { PRESETS, PRESET_ORDER, clampMinutes } from '../lib/presets';
 import type { Key } from '../i18n';
@@ -19,8 +22,15 @@ const PRESET_LABEL: Record<PresetKey, Key> = {
   custom: 'presetCustom'
 };
 
-/* The dashboard: one dial, one row of round lengths, one row of subjects,
-   one button. Everything else on this screen is a read-out. */
+/* The dashboard: one dial, one row of round lengths, one row of subjects, one
+   button. Everything else on this screen is a read-out.
+
+   The subjects used to be pills in a wrapped row, which meant a five-subject
+   timetable reflowed every time one of them gained a time. They are cards on a
+   rail now: fixed width, fixed order, and each one carries its own colour and
+   what it has had today, so "which have I not touched" is answerable without
+   opening anything. */
+
 export default function TodayScreen({ onManageSubjects }: { onManageSubjects: () => void }) {
   const { state, startTimer, logManual, setPomodoro } = useApp();
   const t = useT();
@@ -74,27 +84,32 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
     setLogMinutes('');
   };
 
-  const streakLabel = streak === 0
-    ? t('noStreak')
-    : t(streak === 1 ? 'streakDays' : 'streakDaysPlural', { n: streak });
-
-  const roundCaption = pomodoro.preset === 'open'
-    ? t('openSession')
-    : `${pomodoro.focusMinutes} / ${pomodoro.breakMinutes}`;
-
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={styles.headerRow}>
-        <Text style={styles.h1}>{t('today')}</Text>
-        <View style={styles.streakPill}>
-          <Text style={styles.streakText}>{streakLabel}</Text>
+      <View style={styles.header}>
+        <View style={styles.flex}>
+          <Text style={styles.greeting}>{t(greetingKey())}</Text>
+          <Text style={styles.date}>{prettyDate(today)}</Text>
+        </View>
+        <View style={[styles.streak, streak > 0 && styles.streakOn]} testID="streak-pill">
+          <Icon
+            name="flame"
+            size={15}
+            color={streak > 0 ? colors.accentText : colors.muted}
+            strokeWidth={2}
+          />
+          <Text style={[styles.streakText, streak > 0 && styles.streakTextOn]}>
+            {streak === 0
+              ? t('noStreak')
+              : t(streak === 1 ? 'streakDays' : 'streakDaysPlural', { n: streak })}
+          </Text>
         </View>
       </View>
 
       <View style={styles.dialWrap}>
         <Ring
-          size={252}
-          stroke={16}
+          size={244}
+          stroke={14}
           progress={todaySeconds / targetSeconds}
           color={done ? colors.good : colors.accent}
           gradientTo={done ? colors.good : colors.accentGlow}
@@ -103,40 +118,56 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
           <Text style={styles.dialCaption}>
             {t('ofTarget', { target: dur(targetSeconds) })}
           </Text>
-          <Text style={[styles.dialSub, done && styles.dialSubDone]} testID="dial-remaining">
-            {done
-              ? t('targetDone', { time: dur(todaySeconds - targetSeconds) })
-              : t('toGo', { time: dur(remaining) })}
-          </Text>
+          <View style={[styles.dialPill, done && styles.dialPillDone]}>
+            <Text style={[styles.dialSub, done && styles.dialSubDone]} testID="dial-remaining">
+              {done
+                ? t('targetDone', { time: dur(todaySeconds - targetSeconds) })
+                : t('toGo', { time: dur(remaining) })}
+            </Text>
+          </View>
         </Ring>
       </View>
 
       {!!exam && (
-        <Text style={styles.examText}>{examLine(t, exam.name, daysUntil(exam.date))}</Text>
+        <View style={styles.exam}>
+          <Icon name="target" size={15} color={colors.muted} />
+          <Text style={styles.examText}>{examLine(t, exam.name, daysUntil(exam.date))}</Text>
+        </View>
       )}
 
       {subjects.length === 0 ? (
         <Card>
           <Empty title={t('noSubjectsTitle')} hint={t('noSubjectsHint')} />
-          <Button label={t('addSubjects')} onPress={onManageSubjects} testID="add-subjects" />
+          <Button
+            label={t('addSubjects')}
+            icon="plus"
+            onPress={onManageSubjects}
+            testID="add-subjects"
+            style={styles.topGap}
+          />
         </Card>
       ) : (
         <>
           <SectionTitle>{t('roundLength')}</SectionTitle>
-          <View style={styles.chipWrap}>
-            {PRESET_ORDER.map(key => (
-              <Chip
-                key={key}
-                label={t(PRESET_LABEL[key])}
-                selected={pomodoro.preset === key}
-                onPress={() => choosePreset(key)}
-                testID={`preset-${key}`}
-              />
-            ))}
-          </View>
+          <Segmented
+            value={pomodoro.preset}
+            onChange={choosePreset}
+            options={PRESET_ORDER.map(key => ({
+              value: key,
+              label: t(PRESET_LABEL[key]),
+              testID: `preset-${key}`
+            }))}
+          />
 
-          <SectionTitle>{t('whatStudying')}</SectionTitle>
-          <View style={styles.chipWrap}>
+          <SectionTitle style={styles.railTitle}>{t('pickSubject')}</SectionTitle>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            /* Bled to the screen edge so the last card is visibly cut off —
+               that overhang is the only thing telling anyone the rail scrolls. */
+            style={styles.railBleed}
+            contentContainerStyle={styles.rail}
+          >
             {subjects.map(s => {
               const secs = perSubjectToday[s.id] || 0;
               const on = subject?.id === s.id;
@@ -152,29 +183,48 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
                   onPress={() => setPicked(s.id)}
                   testID={`pick-${s.id}`}
                   style={({ pressed }) => [
-                    styles.subjectChip,
-                    on && { borderColor: s.color, backgroundColor: colors.surface3 },
+                    styles.subjectCard,
+                    on && { borderColor: s.color, backgroundColor: colors.surface },
                     pressed && { opacity: 0.7 }
                   ]}
                 >
-                  <Dot color={s.color} />
-                  <Text style={[styles.subjectName, on && styles.subjectNameOn]}>{s.name}</Text>
-                  {secs > 0 && <Text style={styles.subjectSecs}>{dur(secs)}</Text>}
+                  <View style={styles.subjectTop}>
+                    <Dot color={s.color} size={8} />
+                    {on && <Icon name="check" size={13} color={s.color} strokeWidth={2.8} />}
+                  </View>
+                  <Text style={[styles.subjectName, on && styles.subjectNameOn]} numberOfLines={2}>
+                    {s.name}
+                  </Text>
+                  <Text style={styles.subjectSecs}>
+                    {secs > 0 ? dur(secs) : t('subjectNoneToday')}
+                  </Text>
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
 
           <Button
-            label={t('startFocus')}
+            label={subject ? t('startOn', { subject: subject.name }) : t('startFocus')}
+            icon="play"
             testID="start-focus"
             onPress={() => subject && startTimer(subject.id)}
             style={styles.start}
           />
-          <Text style={styles.roundNote}>{roundCaption}</Text>
+          <Text style={styles.roundNote}>
+            {pomodoro.preset === 'open'
+              ? t('openSession')
+              : t('roundNote', {
+                  focus: pomodoro.focusMinutes,
+                  brk: pomodoro.breakMinutes
+                })}
+          </Text>
 
-          <Pressable onPress={() => setLogFor(subjects[0].id)} testID="log-manually">
-            <Text style={styles.manual}>{t('logManually')}</Text>
+          <Pressable
+            onPress={() => setLogFor(subjects[0].id)}
+            testID="log-manually"
+            style={styles.manual}
+          >
+            <Text style={styles.manualText}>{t('logManually')}</Text>
           </Pressable>
         </>
       )}
@@ -245,6 +295,16 @@ export default function TodayScreen({ onManageSubjects }: { onManageSubjects: ()
   );
 }
 
+/** Reads the phone's clock rather than the app's day key: this is a greeting,
+ *  and at 00:30 "good evening" is wrong even though the day has rolled. */
+function greetingKey(): Key {
+  const hour = new Date().getHours();
+  if (hour < 5) return 'greetNight';
+  if (hour < 12) return 'greetMorning';
+  if (hour < 17) return 'greetAfternoon';
+  return 'greetEvening';
+}
+
 function examLine(
   t: (key: Key, p?: Record<string, string | number>) => string,
   name: string,
@@ -257,80 +317,87 @@ function examLine(
 }
 
 const useStyles = themed((colors) => StyleSheet.create({
-  content: { padding: space.lg, paddingBottom: space.xl * 2 },
-  headerRow: {
+  content: { paddingHorizontal: SCREEN_PAD, paddingTop: space.sm, paddingBottom: 120 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
+  flex: { flex: 1 },
+  greeting: { ...type.h1, color: colors.text },
+  date: { ...type.caption, color: colors.muted, marginTop: 2 },
+  streak: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between'
-  },
-  h1: { color: colors.text, fontSize: 28, fontWeight: '800' },
-  streakPill: {
-    backgroundColor: colors.accentSoft,
+    gap: 5,
+    backgroundColor: colors.surface2,
     borderRadius: radius.pill,
     paddingHorizontal: space.md,
-    paddingVertical: 6
+    paddingVertical: 7,
+    marginTop: 4
   },
-  streakText: { color: colors.text, fontWeight: '700' },
-  dialWrap: { alignItems: 'center', marginVertical: space.lg },
-  bigTime: { color: colors.text, fontSize: 40, fontWeight: '800', letterSpacing: -1 },
-  dialCaption: { color: colors.muted, fontSize: 13, marginTop: 2 },
-  dialSub: { color: colors.muted, fontSize: 13, marginTop: 10, textAlign: 'center' },
-  dialSubDone: { color: colors.good },
-  examText: {
-    color: colors.warn,
-    fontWeight: '700',
-    textAlign: 'center',
+  streakOn: { backgroundColor: colors.accentSoft },
+  streakText: { ...type.label, color: colors.muted },
+  streakTextOn: { color: colors.accentText, fontWeight: '700' },
+
+  dialWrap: { alignItems: 'center', marginTop: space.lg, marginBottom: space.md },
+  bigTime: { ...type.display, color: colors.text },
+  dialCaption: { ...type.caption, color: colors.muted, marginTop: 2 },
+  dialPill: {
+    marginTop: space.sm,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface2,
+    paddingHorizontal: space.md,
+    paddingVertical: 5
+  },
+  dialPillDone: { backgroundColor: colors.accentSoft },
+  dialSub: { ...type.caption, color: colors.muted, textAlign: 'center' },
+  dialSubDone: { color: colors.good, fontWeight: '700' },
+
+  exam: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     marginBottom: space.lg
   },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.sm },
-  subjectChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 44,
-    paddingVertical: space.sm,
-    paddingHorizontal: space.md,
-    borderRadius: radius.pill,
+  examText: { ...type.label, color: colors.muted },
+
+  railTitle: { marginTop: space.lg },
+  /* Negative margin cancels the screen padding so the rail runs edge to edge;
+     the padding is put back on the content so the first card still lines up. */
+  railBleed: { marginHorizontal: -SCREEN_PAD },
+  rail: { paddingHorizontal: SCREEN_PAD, gap: space.sm, paddingVertical: 2 },
+  subjectCard: {
+    width: 124,
+    padding: space.md,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface2,
-    marginRight: space.sm,
-    marginBottom: space.sm,
-    gap: 2
+    gap: space.xs,
+    minHeight: 96,
+    justifyContent: 'space-between'
   },
-  subjectName: { color: colors.muted, fontWeight: '700' },
-  subjectNameOn: { color: colors.text },
-  subjectSecs: {
-    color: colors.muted,
-    fontSize: 12,
-    marginLeft: space.sm,
-    fontVariant: ['tabular-nums']
-  },
-  start: { marginTop: space.md },
-  roundNote: {
-    color: colors.muted,
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: space.sm,
-    fontVariant: ['tabular-nums']
-  },
-  manual: {
-    color: colors.muted,
-    textAlign: 'center',
-    marginTop: space.xl,
-    fontSize: 14,
-    fontWeight: '600'
-  },
-  label: { color: colors.muted, marginBottom: space.sm, fontSize: 13 },
+  subjectTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 14 },
+  subjectName: { ...type.title, color: colors.muted },
+  subjectNameOn: { color: colors.text, fontWeight: '700' },
+  subjectSecs: { ...type.caption, color: colors.muted, ...type.numeric },
+
+  start: { marginTop: space.lg },
+  topGap: { marginTop: space.md },
+  roundNote: { ...type.caption, color: colors.muted, textAlign: 'center', marginTop: space.sm },
+  manual: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: space.sm },
+  manualText: { ...type.label, color: colors.accentText },
+
+  label: { ...type.label, color: colors.muted, marginBottom: space.sm },
   row: { flexDirection: 'row', gap: space.md },
-  flex: { flex: 1 },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.lg },
   input: {
     backgroundColor: colors.bg,
-    borderWidth: 1,
+    borderWidth: hairline,
     borderColor: colors.line,
     borderRadius: radius.md,
     color: colors.text,
-    fontSize: 18,
+    fontSize: 17,
     padding: space.md,
+    minHeight: 50,
     marginBottom: space.lg
   }
 }));

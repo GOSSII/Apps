@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Button, Chip } from '../components/ui';
-import { radius, space, themed, useColors } from '../theme';
+import { Icon } from '../components/Icon';
+import { Button, Chip, SCREEN_PAD, Segmented } from '../components/ui';
+import { hairline, radius, space, themed, type, useColors } from '../theme';
 import { useApp, useDuration, useT } from '../store';
 import { LANGUAGES, type Lang } from '../i18n';
 import { parseDateInput } from '../lib/dates';
@@ -111,22 +112,20 @@ export default function OnboardingScreen() {
       >
         {step === 0 && (
           <>
-            <Text style={styles.mark}>⏱</Text>
+            <View style={styles.mark}>
+              <Icon name="timer" size={28} color={colors.accentText} strokeWidth={1.9} />
+            </View>
             <Text style={styles.title} testID="ob-title">{t('obWelcomeTitle')}</Text>
             <Text style={styles.body1}>{t('obWelcomeBody')}</Text>
-            <View style={styles.chips}>
-              {LANGUAGES.map(option => (
-                <Chip
-                  key={option.key}
-                  label={option.label}
-                  selected={state.lang === option.key}
-                  onPress={() => setLang(option.key as Lang)}
-                  testID={`ob-lang-${option.key}`}
-                />
-              ))}
-            </View>
-            {/* Last, not before the chips: sitting above them it reads as
-                their label rather than as the closing reassurance it is. */}
+            <Segmented
+              value={state.lang}
+              onChange={(key: Lang) => setLang(key)}
+              options={LANGUAGES.map(o => ({
+                value: o.key, label: o.label, testID: `ob-lang-${o.key}`
+              }))}
+            />
+            {/* Last, not before the control: sitting above it this reads as its
+                label rather than as the closing reassurance it is. */}
             <Text style={styles.aside}>{t('obWelcomeOffline')}</Text>
           </>
         )}
@@ -173,17 +172,13 @@ export default function OnboardingScreen() {
             <Text style={styles.big} testID="ob-target">
               {dur(state.dailyTargetMinutes * 60)}
             </Text>
-            <View style={styles.chips}>
-              {TARGETS.map(minutes => (
-                <Chip
-                  key={minutes}
-                  label={dur(minutes * 60)}
-                  selected={state.dailyTargetMinutes === minutes}
-                  onPress={() => setDailyTarget(minutes)}
-                  testID={`ob-target-${minutes}`}
-                />
-              ))}
-            </View>
+            <Segmented
+              value={TARGETS.includes(state.dailyTargetMinutes) ? state.dailyTargetMinutes : -1}
+              onChange={(minutes: number) => setDailyTarget(minutes)}
+              options={TARGETS.map(minutes => ({
+                value: minutes, label: dur(minutes * 60), testID: `ob-target-${minutes}`
+              }))}
+            />
             <View style={styles.row}>
               <Button
                 label={t('minus30')}
@@ -241,57 +236,53 @@ export default function OnboardingScreen() {
 }
 
 const useStyles = themed((colors) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: space.lg },
+  root: { flex: 1, backgroundColor: colors.bg, paddingHorizontal: SCREEN_PAD },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: space.md
+    paddingTop: space.sm
   },
-  step: { color: colors.muted, fontSize: 13, fontWeight: '600' },
-  skip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.sm },
-  skipText: { color: colors.muted, fontSize: 14, fontWeight: '700' },
-  dots: { flexDirection: 'row', gap: 6, marginTop: space.sm, marginBottom: space.lg },
-  dot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.surface2 },
+  step: { ...type.kicker, color: colors.muted },
+  skip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.sm, marginRight: -space.sm },
+  skipText: { ...type.label, color: colors.accentText },
+  dots: { flexDirection: 'row', gap: 6, marginTop: space.sm, marginBottom: space.xl },
+  dot: { flex: 1, height: 3, borderRadius: 2, backgroundColor: colors.surface2 },
   dotOn: { backgroundColor: colors.accent },
   body: { paddingBottom: space.xl },
-  mark: { fontSize: 44, marginBottom: space.sm },
-  title: {
-    color: colors.text,
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    marginBottom: space.sm
+  mark: {
+    width: 56,
+    height: 56,
+    borderRadius: radius.md,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: space.lg
   },
-  body1: { color: colors.muted, fontSize: 15, lineHeight: 22, marginBottom: space.lg },
-  aside: { color: colors.muted, fontSize: 13, marginTop: space.md },
-  big: {
-    color: colors.text,
-    fontSize: 40,
-    fontWeight: '800',
-    letterSpacing: -1,
-    marginBottom: space.md
-  },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: space.sm },
-  row: { flexDirection: 'row', gap: space.md, marginTop: space.sm },
+  title: { ...type.h1, color: colors.text, marginBottom: space.sm },
+  body1: { ...type.body, color: colors.muted, marginBottom: space.xl },
+  aside: { ...type.caption, color: colors.muted, marginTop: space.lg },
+  big: { ...type.display, fontSize: 44, color: colors.text, marginBottom: space.lg },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginBottom: space.lg },
+  row: { flexDirection: 'row', gap: space.md, marginTop: space.md },
   flex: { flex: 1 },
   input: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
+    borderWidth: hairline,
     borderColor: colors.line,
     borderRadius: radius.md,
     color: colors.text,
     fontSize: 16,
     padding: space.md,
-    minHeight: 46,
+    minHeight: 50,
     marginBottom: space.sm
   },
-  error: { color: colors.danger, fontSize: 13, marginBottom: space.sm },
+  error: { ...type.label, color: colors.danger, marginBottom: space.sm },
   footer: {
     flexDirection: 'row',
     gap: space.md,
     paddingVertical: space.lg,
-    borderTopWidth: 1,
+    borderTopWidth: hairline,
     borderTopColor: colors.line
   }
 }));

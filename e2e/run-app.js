@@ -56,9 +56,9 @@ const seed = (extra = {}) => ({
 
   // ---------- dashboard ----------
   await load(seed());
-  check('dial shows the daily target', await page.getByText('of 4h target').isVisible());
+  check('dial shows the daily target', await page.getByText('of 4h', { exact: true }).isVisible());
   check('round presets offered', await page.getByTestId('preset-deep').isVisible());
-  check('subjects offered as chips', await page.getByTestId('pick-s2').isVisible());
+  check('subjects offered on the rail', await page.getByTestId('pick-s2').isVisible());
 
   // ---------- a fixed round, run to completion ----------
   // A 1-minute custom round keeps the test honest without waiting 25 minutes.
@@ -67,7 +67,7 @@ const seed = (extra = {}) => ({
   await page.getByTestId('custom-break').fill('1');
   await page.getByTestId('custom-save').click();
   await page.waitForTimeout(300);
-  check('custom round saved', await page.getByText('1 / 1').isVisible());
+  check('custom round saved', await page.getByText('1 min on, 1 min off').isVisible());
 
   await page.getByTestId('pick-s2').click();
   await page.getByTestId('start-focus').click();
@@ -128,7 +128,7 @@ const seed = (extra = {}) => ({
   await page.getByTestId('start-focus').click();
   await page.waitForTimeout(2200);
   check('open sitting has no countdown',
-    await page.getByText('Open-ended sitting').isVisible());
+    await page.getByText('No end time').isVisible());
   await page.getByTestId('focus-stop').click();
   await page.waitForTimeout(600);
   check('open sitting saves and returns',
@@ -196,7 +196,8 @@ const seed = (extra = {}) => ({
     exam: null
   }));
   check('streak survives the new session shape',
-    await page.getByText(/🔥 6 days/).isVisible());
+    (await page.getByTestId('streak-pill').textContent()) === '6 days',
+    await page.getByTestId('streak-pill').textContent());
 
   await page.getByTestId('tab-stats').click();
   await page.waitForTimeout(600);
@@ -230,7 +231,7 @@ const seed = (extra = {}) => ({
   check('clean rounds counted', await page.getByText('6/8').isVisible());
 
   // ---------- editing a past sitting: length, date and subject ----------
-  await page.getByText('Edit').first().click();
+  await page.locator('[data-testid^="row-edit-"]').first().click();
   await page.waitForTimeout(300);
   // The date field is pre-filled; saving without retyping it must work.
   await page.getByTestId('edit-minutes').fill('99');
@@ -239,7 +240,7 @@ const seed = (extra = {}) => ({
   check('a sitting saves without retyping its pre-filled date',
     await page.getByText('1h 39m').first().isVisible());
 
-  await page.getByText('Edit').first().click();
+  await page.locator('[data-testid^="row-edit-"]').first().click();
   await page.waitForTimeout(300);
   const tomorrow = new Date(Date.now() + 86400000);
   const p2 = x => String(x).padStart(2, '0');
@@ -291,11 +292,17 @@ const seed = (extra = {}) => ({
   await page.waitForTimeout(300);
   await page.getByTestId('lang-hi').click();
   await page.waitForTimeout(400);
-  check('round settings translated', await page.getByText('फ़ोकस राउंड').isVisible());
+  check('round settings translated', await page.getByText('राउंड की लंबाई').isVisible());
+  check('the nudge switches are translated',
+    await page.getByText('स्ट्रीक ख़तरे में').isVisible());
   await page.getByTestId('tab-today').click();
   await page.waitForTimeout(400);
-  check('dashboard translated', await page.getByText('क्या पढ़ रहे हैं?').isVisible());
-  check('start button translated', await page.getByText('फ़ोकस शुरू करें').isVisible());
+  check('dashboard translated', await page.getByText('विषय', { exact: true }).first().isVisible());
+  // The primary button names the subject it will start, so it is half Hindi.
+  const startLabel = await page.getByTestId('start-focus').textContent();
+  check('start button translated, and names the subject it will start',
+    startLabel.endsWith('शुरू करें') && startLabel.length > 'शुरू करें'.length,
+    startLabel);
   await page.screenshot({ path: 'shot-hi-today.png' });
 
   await page.getByTestId('start-focus').click();

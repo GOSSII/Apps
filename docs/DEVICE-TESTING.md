@@ -5,8 +5,23 @@ headless browser. That covers the logic and most of the UI, and it cannot
 cover the list below — a browser tab has no notifications, never truly goes
 to the background, and has no share sheet.
 
-**Nothing here has run on a phone yet.** This is the checklist for the first
-time it does.
+**Verified on hardware so far** — one Android device, EAS `preview` build:
+
+- [x] The APK installs and the app opens
+- [x] The daily reminder fires, at the right time
+
+Everything else below is still unverified. Two of the boxes are new with the
+redesign and worth doing early, because both are things a browser cannot show
+at all:
+
+- [ ] The round-end alarm arrives as a heads-up banner with a sound, not a
+      silent line in the shade. Its channel moved to `round-end-v2` at HIGH
+      importance precisely because Android freezes a channel's importance when
+      it is created and the original was registered at DEFAULT — so on a phone
+      that had an earlier build, check the new channel exists under
+      Settings → Notifications rather than assuming the change took.
+- [ ] A neglect nudge and a streak warning actually arrive, and say the right
+      number when they do.
 
 ## Get it on a phone
 

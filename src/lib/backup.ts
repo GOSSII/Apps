@@ -73,6 +73,7 @@ export function parseBackup(text: string): ParseResult {
     subjects: migrateSubjectColours(incoming.subjects as AppState['subjects']),
     sessions: incoming.sessions as AppState['sessions'],
     reminder: { ...base.reminder, ...(isObject(incoming.reminder) ? incoming.reminder : {}) },
+    nudges: { ...base.nudges, ...(isObject(incoming.nudges) ? incoming.nudges : {}) },
     pomodoro: { ...base.pomodoro, ...(isObject(incoming.pomodoro) ? incoming.pomodoro : {}) },
     themePref:
       incoming.themePref === 'light' || incoming.themePref === 'dark'

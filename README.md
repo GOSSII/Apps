@@ -77,9 +77,19 @@ notebook and honest about the numbers.
 - Backup to a file you can keep, and restore onto a new phone
 - Manual entry for study you did away from the phone
 - Exam name + date countdown
-- One daily reminder notification, at a time you choose
 - Light or dark, or follow the phone
 - Full English / हिंदी interface
+
+**Notifications** — all scheduled on the phone, none of them needing a server
+
+- One daily reminder, at a time you choose
+- An alarm when a round is up, so the phone can stay face-down
+- A nudge when one subject has gone a week untouched, naming the subject and
+  counting the days as of the moment the notification will actually arrive
+- A warning at 9:30pm when a live streak is still short of the day's target,
+  with how much is left — sent only if the day is genuinely unfinished
+- Each can be switched off on its own, and none of them ever prompts for
+  permission on its own account
 
 ## Run it
 
@@ -212,7 +222,7 @@ Five decisions worth knowing:
 ## Testing
 
 ```sh
-npm test          # 129 unit tests (jest-expo)
+npm test          # 146 unit tests (jest-expo)
 npm run typecheck # tsc --noEmit
 ```
 
@@ -229,9 +239,16 @@ the calendar's rows really are fixed weekdays, preset lengths, storage upgrades 
 check that every Hindi string keeps the same `{placeholders}` as its English
 original, and both palettes measured against every ground they are painted on.
 
+The two background nudges get their own suite, because they are the only text
+this app shows when it is not on screen and the thing worth proving is not that
+they fire but that what they say is still true when they arrive: a neglect
+nudge scheduled tonight counts the gap as it will read tomorrow evening, one is
+never raised against a subject that has simply never been started, and the
+streak warning refuses to roll over to a night on which it would be a lie.
+
 The UI is additionally driven end-to-end in a browser (react-native-web +
-headless Chromium) — see `e2e/` for how to run them, 165 checks in all. The main
-script's 43 cover: a fixed round run to completion, the
+headless Chromium) — see `e2e/` for how to run them, 170 checks in all. The main
+script's 44 cover: a fixed round run to completion, the
 break that follows it, skipping a break, open-ended sittings, pause freezing
 the countdown, distraction counts surfacing in focus mode, the calendar and
 clean-round stats, a round finished last night and saved this morning landing
@@ -248,6 +265,12 @@ OS reporting light and once dark — and reads the colours the app actually
 painted rather than the ones the token file claims. It also proves the subject
 migration end to end, by seeding a subject in the old colour and checking no
 such dot reaches the screen.
+
+`e2e/run-a11y.js` walks every screen measuring what a screen reader and a thumb
+actually get: an accessible name on every control, a 44px minimum on every tap
+target, and — since the redesign replaced the emoji with drawn icons — that not
+one of those drawings announces itself as an image next to the label it already
+illustrates. It caught the segmented control shipping at 38px.
 
 `e2e/run-celebrate.js` is mostly about the celebration *not* happening. Firing
 is one check; the rest are the ways it must stay silent — a day still short of
@@ -273,15 +296,19 @@ with no account:
 
 ## Running it on a phone
 
-Nothing here has been verified on hardware yet — everything so far went through
-`react-native-web` in a headless browser, which has no notifications, never
-truly backgrounds, and has no share sheet. `docs/DEVICE-TESTING.md` is the
-checklist for the first real run, and `eas.json` has a `preview` profile that
-builds an installable APK.
+Verified on a real Android device from an EAS `preview` build: the app installs
+and runs, and the daily reminder arrives at the time it was set for. Everything
+else in `docs/DEVICE-TESTING.md` is still open — that checklist tracks what has
+and has not been through hardware, and `eas.json` has the `preview` profile
+that builds the installable APK.
 
 ## Not built yet
 
-- Notification copy that reacts to the day's progress (it is a fixed daily nudge)
+- Notification copy that reacts to the day's progress *as it changes*. The two
+  nudges that exist are honest because nothing but this app writes study data,
+  so they can be rebuilt from live state every time it changes. "2h done, 2h to
+  go" cannot be: its text is fixed when it is scheduled, the app cannot run in
+  the background to refresh it, and the clock moves on its own.
 - A live countdown *inside* the notification shade (the alarm fires at the end,
   it does not tick)
 - Widgets, watch app, or automatic cloud backup

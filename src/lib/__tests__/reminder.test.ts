@@ -28,11 +28,11 @@ describe('formatTime', () => {
 describe('translate', () => {
   it('fills placeholders', () => {
     expect(translate('en', 'toGo', { time: '1h 30m' })).toBe('1h 30m to go');
-    expect(translate('hi', 'toGo', { time: '1h 30m' })).toBe('1h 30m और बाकी');
+    expect(translate('hi', 'toGo', { time: '1h 30m' })).toBe('1h 30m बाकी');
   });
 
   it('leaves unknown placeholders alone rather than printing undefined', () => {
-    expect(translate('en', 'examIn', { name: 'JEE' })).toBe('JEE in {n} days');
+    expect(translate('en', 'examIn', { name: 'JEE' })).toBe('JEE · {n} days');
   });
 
   it('has a non-empty string for every key in both languages', () => {

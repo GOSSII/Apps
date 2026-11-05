@@ -167,7 +167,11 @@ const seed = (extra = {}) => ({
   await openSubject('s2');
   check('the screen is translated', (await since()) === 'पिछली बार 9 दिन पहले पढ़ा',
     await since());
-  check('so is the way back', await page.getByText('‹ सभी विषय').isVisible());
+  /* The way back is an icon now, so its accessible name is the only thing
+     carrying it — and that name has to be translated too. */
+  check('so is the way back',
+    (await page.getByTestId('subject-back').getAttribute('aria-label')) === 'सभी विषय',
+    await page.getByTestId('subject-back').getAttribute('aria-label'));
 
   check('no runtime errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 
