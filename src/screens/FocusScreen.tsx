@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Ring } from '../components/Ring';
 import { Icon } from '../components/Icon';
@@ -11,7 +11,9 @@ import {
 } from '../store';
 import { clockDuration } from '../lib/format';
 import { breakSecondsOf } from '../lib/presets';
-import { cancelRoundEnd, installNotificationHandler, scheduleRoundEnd } from '../lib/notifications';
+import {
+  cancelRoundEnd, installNotificationHandler, presentRoundEnd, scheduleRoundEnd
+} from '../lib/notifications';
 
 const KEEP_AWAKE_TAG = 'padhai-focus';
 
@@ -77,7 +79,21 @@ export default function FocusScreen() {
   useEffect(() => {
     if (done && !finished) {
       setFinished(true);
-      if (active?.runningSince) pauseTimer();
+      if (active?.runningSince) {
+        /* Seen live, within seconds of the end: ring now. The scheduled alarm
+           cannot be trusted with this. Android may deliver it minutes late,
+           and pausing below cancels it anyway. Seen late (the app was asleep),
+           the scheduled alarm already had its turn, so stay quiet. */
+        const late = elapsedOf(active) - (active.plannedSeconds ?? 0);
+        if (late <= 10) {
+          Vibration.vibrate([0, 600, 300, 600, 300, 600]);
+          void presentRoundEnd(
+            active.kind === 'break' ? t('breakOver') : t('roundComplete'),
+            active.kind === 'break' ? t('backToStudy') : t('roundEndBody')
+          );
+        }
+        pauseTimer();
+      }
     }
     if (!done && finished) setFinished(false);
   }, [done, finished, active?.runningSince, pauseTimer]);

@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+  Linking, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View
+} from 'react-native';
 import {
   Button, Card, Row, SCREEN_PAD, ScreenTitle, Segmented, SectionTitle
 } from '../components/ui';
@@ -10,7 +12,8 @@ import { PRESETS, PRESET_ORDER } from '../lib/presets';
 import type { PresetKey, ThemePref } from '../types';
 import { dateInputValue, daysUntil, parseDateInput, prettyDate } from '../lib/dates';
 import {
-  cancelDailyReminder, formatTime, parseTimeInput, scheduleDailyReminder
+  cancelDailyReminder, exactAlarmSettingAvailable, formatTime, openExactAlarmSetting,
+  parseTimeInput, scheduleDailyReminder
 } from '../lib/notifications';
 import { backupFilename, parseBackup, serialiseBackup } from '../lib/backup';
 import { canPickFiles, pickBackup, saveBackup } from '../lib/backupTransport';
@@ -25,6 +28,32 @@ import { Confirm, Sheet } from '../components/Modals';
 /* Play wants the policy reachable from inside the app. It is the one thing here
    that needs the internet, and only because the person asked to read it. */
 const PRIVACY_URL = 'https://stockbook.sellertoolsindia.com/padhai-streak/privacy.html';
+
+/* On Android the time is picked on the phone's own clock, not typed. Loaded
+   only there, so the browser preview never touches the native module. */
+function pickTimeOnClock(
+  hour: number,
+  minute: number,
+  onPick: (hour: number, minute: number) => void
+): boolean {
+  if (Platform.OS !== 'android') return false;
+  try {
+    const { DateTimePickerAndroid } = require('@react-native-community/datetimepicker');
+    const value = new Date();
+    value.setHours(hour, minute, 0, 0);
+    DateTimePickerAndroid.open({
+      value,
+      mode: 'time',
+      display: 'clock',
+      onChange: (event: { type: string }, picked?: Date) => {
+        if (event.type === 'set' && picked) onPick(picked.getHours(), picked.getMinutes());
+      }
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const THEME_OPTIONS: { key: ThemePref; labelKey: Key }[] = [
   { key: 'system', labelKey: 'themeSystem' },
@@ -127,20 +156,6 @@ export default function SettingsScreen() {
     setExamOpen(false);
   };
 
-  /* Notification copy is fixed at schedule time, so a reminder set in English
-     at a 4h target would keep saying that after the user switches to Hindi or
-     moves their target. Re-schedule whenever either changes. */
-  useEffect(() => {
-    if (!reminder.enabled) return;
-    void scheduleDailyReminder(
-      reminder.hour,
-      reminder.minute,
-      t('reminderTitle'),
-      t('reminderBody', { target: dur(dailyTargetMinutes * 60) })
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang, dailyTargetMinutes, reminder.enabled, reminder.hour, reminder.minute]);
-
   const applyReminder = async (hour: number, minute: number) => {
     const result = await scheduleDailyReminder(
       hour, minute, t('reminderTitle'),
@@ -164,19 +179,35 @@ export default function SettingsScreen() {
       setReminderError(null);
       return;
     }
+    /* Turning it on asks for the time first; closing the clock leaves it off. */
+    if (pickTimeOnClock(reminder.hour, reminder.minute, (h, m) => { void applyReminder(h, m); })) {
+      return;
+    }
     await applyReminder(reminder.hour, reminder.minute);
+  };
+
+  const setTime = async (hour: number, minute: number) => {
+    if (reminder.enabled) {
+      await applyReminder(hour, minute);
+    } else {
+      setReminder({ ...reminder, hour, minute });
+      setReminderError(null);
+    }
+  };
+
+  const openTime = () => {
+    if (pickTimeOnClock(reminder.hour, reminder.minute, (h, m) => { void setTime(h, m); })) {
+      return;
+    }
+    setTimeText(formatTime(reminder.hour, reminder.minute));
+    setTimeOpen(true);
   };
 
   const saveTime = async () => {
     const time = parseTimeInput(timeText);
     if (!time) { setReminderError(t('reminderBadTime')); return; }
     setTimeOpen(false);
-    if (reminder.enabled) {
-      await applyReminder(time.hour, time.minute);
-    } else {
-      setReminder({ ...reminder, hour: time.hour, minute: time.minute });
-      setReminderError(null);
-    }
+    await setTime(time.hour, time.minute);
   };
 
   const switchColors = {
@@ -271,9 +302,17 @@ export default function SettingsScreen() {
         <Row
           title={t('reminderTime')}
           value={formatTime(reminder.hour, reminder.minute)}
-          onPress={() => { setTimeText(formatTime(reminder.hour, reminder.minute)); setTimeOpen(true); }}
+          onPress={openTime}
           testID="reminder-time-row"
         />
+        {exactAlarmSettingAvailable() && (
+          <Row
+            title={t('exactAlarm')}
+            subtitle={t('exactAlarmHint')}
+            onPress={() => { void openExactAlarmSetting(); }}
+            testID="exact-alarm-row"
+          />
+        )}
         <Row
           title={t('nudgeNeglect')}
           subtitle={t('nudgeNeglectHint')}
@@ -355,7 +394,7 @@ export default function SettingsScreen() {
         />
       </Card>
 
-      <Text style={styles.footer}>Padhai Streak · v1.0</Text>
+      <Text style={styles.footer}>Padhai Streak · v1.0.1</Text>
 
       <Sheet visible={timeOpen} title={t('reminderTime')} onClose={() => setTimeOpen(false)}>
         <Text style={styles.fieldLabel}>{t('reminderTimePlaceholder')}</Text>
