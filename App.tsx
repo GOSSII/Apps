@@ -15,9 +15,15 @@ import OnboardingScreen from './src/screens/OnboardingScreen';
 import { Celebration } from './src/components/Celebration';
 import { NudgeScheduler } from './src/components/NudgeScheduler';
 import { Icon, type IconName } from './src/components/Icon';
+import { installNotificationHandler } from './src/lib/notifications';
 import {
   ThemeProvider, hairline, radius, space, themed, type, useColors, useTheme
 } from './src/theme';
+
+/* Without a handler, a notification that arrives while the app is open is
+   dropped. Installed here, once, so the daily reminder and the nudges show on
+   every screen, not only during a round. */
+void installNotificationHandler();
 
 type TabKey = 'today' | 'stats' | 'subjects' | 'settings';
 

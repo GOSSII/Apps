@@ -1,10 +1,11 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 import { useApp, useDuration, useT, useToday } from '../store';
 import { currentStreak, dayTotals } from '../lib/stats';
 import { planNeglect, planStreakRisk } from '../lib/nudges';
 import {
   cancelNeglectNudge, cancelStreakRisk, notificationsAllowed,
-  scheduleNeglectNudge, scheduleStreakRisk
+  scheduleDailyReminder, scheduleNeglectNudge, scheduleStreakRisk
 } from '../lib/notifications';
 
 /* Renders nothing; keeps the two background nudges in step with the data.
@@ -25,7 +26,35 @@ export function NudgeScheduler() {
   const dur = useDuration();
   const today = useToday();
 
-  const { subjects, sessions, dailyTargetMinutes, nudges, lang } = state;
+  const { subjects, sessions, dailyTargetMinutes, nudges, lang, reminder } = state;
+
+  /* Counts returns to the foreground. Android only lets an alarm ring on time
+     if it was set after the user allowed "Alarms & reminders", and that switch
+     lives in phone settings, so set the reminder again on every return. */
+  const [resumes, setResumes] = useState(0);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', next => {
+      if (next === 'active') setResumes(n => n + 1);
+    });
+    return () => sub.remove();
+  }, []);
+
+  /* The daily reminder's copy is fixed when it is scheduled, so it is also
+     set again when the language or the target changes. Only once already
+     allowed: switching the reminder on is what asks. */
+  useEffect(() => {
+    if (!ready || !reminder.enabled) return;
+    void (async () => {
+      if (!(await notificationsAllowed())) return;
+      await scheduleDailyReminder(
+        reminder.hour,
+        reminder.minute,
+        t('reminderTitle'),
+        t('reminderBody', { target: dur(dailyTargetMinutes * 60) })
+      );
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, resumes, lang, dailyTargetMinutes, reminder.enabled, reminder.hour, reminder.minute]);
   const targetSeconds = dailyTargetMinutes * 60;
 
   const totals = useMemo(() => dayTotals(sessions), [sessions]);

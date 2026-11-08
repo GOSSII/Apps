@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
 /* expo-notifications is loaded lazily and behind try/catch on purpose:
    scheduling is unavailable in the browser preview and restricted in Expo Go
@@ -14,13 +14,17 @@ const REMINDER_CHANNEL = 'daily-reminder';
    was registered at DEFAULT, which is the difference between an alarm that
    interrupts and one that waits silently in the shade. A new id is the only
    way to ship the fix to anyone who already has the app. */
-const ROUND_CHANNEL = 'round-end-v2';
+/* v3 adds vibration, which (like importance) Android freezes at creation. */
+const ROUND_CHANNEL = 'round-end-v3';
 const NUDGE_CHANNEL = 'study-nudges';
 
 /* Fixed identifiers so each notification can be cancelled on its own. They
    must never cancel each other. */
 const DAILY_ID = 'padhai-daily-reminder';
 const ROUND_ID = 'padhai-round-end';
+/* Shown by the app itself when it sees the round end while it is running.
+   Its own id, so cancelling the scheduled alarm never takes this one away. */
+const ROUND_NOW_ID = 'padhai-round-end-now';
 const NEGLECT_ID = 'padhai-neglect-nudge';
 const STREAK_ID = 'padhai-streak-risk';
 
@@ -34,6 +38,9 @@ async function load() {
 }
 
 async function ensurePermission(Notifications: any): Promise<boolean> {
+  /* Android only shows the permission dialog once the app has at least one
+     channel, so make sure one exists before asking. */
+  await ensureChannel(Notifications, REMINDER_CHANNEL, 'Daily reminder').catch(() => {});
   const existing = await Notifications.getPermissionsAsync();
   if (existing.granted) return true;
   if (!existing.canAskAgain) return false;
@@ -62,11 +69,17 @@ async function ensureChannel(
   importance: Importance = 'default'
 ): Promise<void> {
   if (Platform.OS !== 'android') return;
+  const high = importance === 'high';
   await Notifications.setNotificationChannelAsync(id, {
     name,
-    importance: importance === 'high'
+    importance: high
       ? Notifications.AndroidImportance.HIGH
-      : Notifications.AndroidImportance.DEFAULT
+      : Notifications.AndroidImportance.DEFAULT,
+    ...(high ? {
+      sound: 'default',
+      enableVibrate: true,
+      vibrationPattern: [0, 600, 300, 600, 300, 600]
+    } : {})
   });
 }
 
@@ -172,6 +185,31 @@ export async function scheduleRoundEnd(
   }
 }
 
+/** The round just ran out while the app was running: ring now instead of
+ *  waiting for the scheduled alarm, which Android may hold back by minutes.
+ *  Never asks for permission (the round's start already did). */
+export async function presentRoundEnd(title: string, body: string): Promise<void> {
+  const Notifications = await load();
+  if (!Notifications) return;
+  try {
+    /* Cancel first, then look: once cancelled the scheduled alarm cannot
+       arrive after the check, and if it already arrived there is nothing to
+       add, so the round never ends with two alarms. */
+    await Notifications.cancelScheduledNotificationAsync(ROUND_ID).catch(() => {});
+    if (!(await Notifications.getPermissionsAsync()).granted) return;
+    const shown = await Notifications.getPresentedNotificationsAsync().catch(() => []);
+    if (shown.some((n: any) => n?.request?.identifier === ROUND_ID)) return;
+    await ensureChannel(Notifications, ROUND_CHANNEL, 'Round finished', 'high');
+    await Notifications.scheduleNotificationAsync({
+      identifier: ROUND_NOW_ID,
+      content: { title, body },
+      trigger: { channelId: ROUND_CHANNEL }
+    });
+  } catch {
+    /* The screen already shows the round is over. */
+  }
+}
+
 export async function cancelRoundEnd(): Promise<void> {
   const Notifications = await load();
   if (!Notifications) return;
@@ -246,6 +284,25 @@ export async function scheduleStreakRisk(
 }
 
 export const cancelStreakRisk = () => cancelOne(STREAK_ID);
+
+/** Android 12+ holds back alarms unless the user allows "Alarms & reminders"
+ *  for the app. Opens that page; false when there is no such page. */
+export function exactAlarmSettingAvailable(): boolean {
+  return Platform.OS === 'android' && Number(Platform.Version) >= 31;
+}
+
+export async function openExactAlarmSetting(): Promise<void> {
+  if (!exactAlarmSettingAvailable()) return;
+  try {
+    const IntentLauncher = await import('expo-intent-launcher');
+    await IntentLauncher.startActivityAsync(
+      'android.settings.REQUEST_SCHEDULE_EXACT_ALARM',
+      { data: 'package:com.padhaistreak.app' }
+    );
+  } catch {
+    await Linking.openSettings().catch(() => {});
+  }
+}
 
 /** '21:00' / '9:5' → {hour, minute}; null when it isn't a real clock time. */
 export function parseTimeInput(text: string): { hour: number; minute: number } | null {
